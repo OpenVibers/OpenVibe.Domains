@@ -4,19 +4,23 @@
  * OpenVibe.Domains — Express app factory.
  *
  *   /, /search, /tld/:tld, /d/:domain     the pages (http/pages.js)
- *   /api/v1/*                             the read-only JSON API (http/api.js)
+ *   /panel/*                              the control panel: connections, zones, proposals (http/panel.js)
+ *   /auth/*                               sign-in with OpenVibe.Network, OAuth client `domains` (auth/sso.js)
+ *   /api/v1/*                             the JSON API (http/api.js; the panel's in http/panel.js)
+ *   /internal/events                      account export and deletion from OpenVibe.Events (loopback only)
  *   /api/health, /api/ready               liveness and truthful readiness
  *   /release.json, /release-metrics       the release manifest (openvibe-shared/release)
  *   /robots.txt, /sitemap.xml, /llms.txt  crawl artifacts (http/discovery.js)
  *   /shared/*                             this service's own pinned Frame files
  *
- * No database, no sign-in, no Events: every request reads two public OpenVibe services through
- * the cached clients in server/data/. The app factory takes them as options so tests can pass
- * stubs instead of the network.
+ * The price and info pages read two public OpenVibe services through the cached clients in server/data/. The control
+ * panel keeps its own state in ov_domains (server/db.js) and its credentials in the person's Network project
+ * (panel/vault.js). The factory takes every client as an option so tests can pass stubs instead of the network.
  */
 const path = require('path');
 const express = require('express');
 const helmet = require('helmet');
+const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
 const contracts = require('openvibe-contracts');
 const serve = require('openvibe-shared/serve');
@@ -29,14 +33,24 @@ const { createTools } = require('./data/tools');
 const { createApi } = require('./http/api');
 const { createPageRoutes } = require('./http/pages');
 const { createServiceReadiness } = require('./observability');
+const { openStore } = require('./db');
+const { createKeyStore } = require('./auth/keys');
+const { createSso } = require('./auth/sso');
+const { createPrincipal } = require('./http/principal');
+const { createVault } = require('./panel/vault');
+const { createCloudflare } = require('./panel/cloudflare');
+const { createPanel } = require('./panel/panel');
+const { createPanelRoutes } = require('./http/panel');
+const accountDataLib = require('./identity/account-data');
+const { createNetworkSender } = require('openvibe-sdk/account-data');
 
 const VERSION = require('../package.json').version;
 
 /**
- * opts: config, host, tools, fetchImpl, log, release
- * `host` and `tools` are the two data clients; a test passes objects with the same methods.
+ * opts: config, host, tools, fetchImpl, log, release, store, vault, providers, accountSend
+ * `host`, `tools`, `vault` and `providers` are clients; a test passes objects with the same methods.
  */
-function createApp(opts = {}) {
+async function createApp(opts = {}) {
     const config = opts.config || configLib.load();
     const log = opts.log || console;
     const fetchImpl = opts.fetchImpl || globalThis.fetch;
@@ -44,7 +58,16 @@ function createApp(opts = {}) {
     const tools = opts.tools || createTools({ baseUrl: config.toolsUrl, fetchImpl, log, timeoutMs: config.timeoutMs });
 
     const release = opts.release || releaseLib.createRelease({ service: 'domains', root: path.join(__dirname, '..') });
-    const ctx = { config, host, tools, log, release };
+    const store = opts.store || await openStore(config, { log });
+    const keys = createKeyStore({ config, fetchImpl, log });
+    const sso = createSso({ config, keys, fetchImpl, now: store.now, log });
+    const principal = createPrincipal({ config, keys });
+    const vault = opts.vault || createVault({ config, fetchImpl });
+    const providers = opts.providers || { cloudflare: createCloudflare({ fetchImpl }) };
+    const panel = createPanel({ store, vault, providers, log });
+    const accountData = accountDataLib.create({ db: store.db, log });
+    const accountSend = opts.accountSend || (config.oauth.clientSecret ? createNetworkSender({ networkInternalUrl: config.networkInternalUrl, clientId: config.oauth.clientId, clientSecret: config.oauth.clientSecret, fetch: fetchImpl }) : null);
+    const ctx = { config, host, tools, log, release, store, keys, sso, principal, vault, panel, accountData };
 
     const app = express();
     app.disable('x-powered-by');
@@ -58,7 +81,7 @@ function createApp(opts = {}) {
     release.mount(app, { registry: metrics.registry });
 
     app.get('/api/health', (_req, res) => res.json({ status: 'ok', service: 'openvibe-domains', version: VERSION }));
-    const readiness = createServiceReadiness({ host, tools, release: release.release });
+    const readiness = createServiceReadiness({ host, tools, store, release: release.release });
     app.get('/api/ready', readiness.handler);
 
     app.use(contracts.http.middleware());
@@ -76,6 +99,7 @@ function createApp(opts = {}) {
                 frameAncestors: ["'none'"],
                 objectSrc: ["'none'"],
                 baseUri: ["'self'"],
+                // Sign-in goes through Network's authorize page; a form never posts anywhere else.
                 formAction: ["'self'", 'https://openvibe.network'],
             },
         },
@@ -84,6 +108,17 @@ function createApp(opts = {}) {
         crossOriginResourcePolicy: { policy: 'same-site' },
         referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
     }));
+
+    app.use(cookieParser());
+
+    // ── OpenVibe.Events → this service (loopback only; nginx answers 404 for /internal/). The consumer reads the raw
+    // body itself, so it is mounted before any body parser.
+    app.use('/internal/events', accountData.consumer({ secrets: config.events.secrets, send: accountSend }));
+
+    // ── Who is asking (the session cookie, verified offline) and sign-in ──
+    app.use(sso.middleware());
+    app.use('/auth/', rateLimit({ windowMs: 15 * 60_000, limit: 60, standardHeaders: true, legacyHeaders: false }));
+    app.use('/auth', sso.routes());
 
     // This service's own pinned copy of the Frame, and its stylesheet (content-hashed by the views: kept a year).
     app.use('/shared', serve.handler());
@@ -108,6 +143,8 @@ function createApp(opts = {}) {
     app.use('/search', limiter);
 
     // ── API ─────────────────────────────────────────────────
+    const panelRoutes = createPanelRoutes({ config, panel, principal, log });
+    app.use('/api/v1', panelRoutes.api);
     app.use('/api/v1', createApi(ctx));
     app.use('/api', (req, res) => {
         res.set('Cache-Control', 'no-store');
@@ -115,6 +152,7 @@ function createApp(opts = {}) {
     });
 
     // ── Pages ───────────────────────────────────────────────
+    app.use(panelRoutes.pages);
     app.use(createPageRoutes(ctx));
 
     // eslint-disable-next-line no-unused-vars

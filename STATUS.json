@@ -1,6 +1,6 @@
 {
   "repository": "OpenVibers/OpenVibe.Domains",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "stage": "product",
   "code": true,
   "wave": "v1",
@@ -25,14 +25,16 @@
     "Read-only JSON API at /api/v1: search, tlds, one tld, one domain; CORS-open; 400 problem+json for a bad name and 404 for an unknown ending; 120/min per IP shared with /search",
     "Service plumbing: helmet with Help's CSP, /api/health, /api/ready (Host and Tools optional, so a failure is degraded not 503), release.json and /release-metrics, /shared, /robots.txt, /sitemap.xml (every catalog ending, lastmod from the release), /llms.txt, /metrics on loopback, graceful stop",
     "Deploy files: systemd unit on /opt/openvibe.domains, nginx vhost with www -> apex, TLS, security headers, GET-only /api/v1 and loopback-only /metrics",
-    "Tests: names, pricing, the data clients' cache/expiry/failure/timeout, and the booted app's pages, redirects, API shapes, CORS, discovery and degraded readiness"
+    "Tests: names, pricing, the data clients' cache/expiry/failure/timeout, and the booted app's pages, redirects, API shapes, CORS, discovery and degraded readiness",
+    "Control panel (DOM-2): sign-in with OpenVibe.Network (client domains); connect Cloudflare (token verified, stored as a secret in the person's own Network project granted for reveal to api.cloudflare.com only); zones synced; records read live; every change a domains.proposal@1 approved on its page or in the Action Center (domains.actions.read, domains.proposal.decide), applied in order with a stale check, rolled back in one step; audit; account export and deletion"
   ],
   "notYet": [
     "The pages are plain placeholders (server/views/index.js) written for v1's plumbing; the main session replaces server/views/ with the real design",
     "No service manifest in openvibe-contracts yet: no domains.* capability is registered and no other service calls this one",
     "No database, no sign-in, no sessions, no event subscriptions and no stored data (v1 is deliberately stateless)",
     "No registrar links or affiliate handling: prices are shown with the registrar's name, not linked out yet",
-    "Only /api/v1 and /search are rate limited; the HTML pages are served to everyone"
+    "Only /api/v1 and /search are rate limited; the HTML pages are served to everyone",
+    "Porkbun, Namecheap and Spaceship connections; DNSSEC DS at the registrar; bulk nameserver changes; agents proposing through MCP"
   ],
   "capabilitiesRegistered": false,
   "serviceManifestRegistered": false,

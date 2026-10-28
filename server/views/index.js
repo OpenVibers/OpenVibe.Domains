@@ -52,8 +52,9 @@ const tldHref = (tld) => `/tld/${encodeURIComponent(String(tld).replace(/^\./, '
 const latest = (rows) => rows.map((r) => r.checked_at).filter(Boolean).sort().pop() || null;
 
 const NAV = [
-    { label: 'Price a name', href: '/', icon: 'fa-magnifying-glass-dollar' },
+    { label: 'Price a name', href: '/', icon: 'fa-magnifying-glass' },
     { label: 'Every ending', href: '/tld', icon: 'fa-list' },
+    { label: 'Control panel', href: '/panel', icon: 'fa-server' },
     { label: 'API', href: '/developers', icon: 'fa-code', more: true },
 ];
 
@@ -63,7 +64,12 @@ function layout({ title, description, canonical, robots = 'index, follow', body,
         service: 'domains',
         apiBase: NETWORK,
         links: NAV.map((l) => ({ ...l, active: l.href === active })),
-        appBar: [{ label: 'Price', href: '/', icon: 'fa-magnifying-glass-dollar' }, { label: 'Endings', href: '/tld', icon: 'fa-list' }],
+        appBar: [{ label: 'Price', href: '/', icon: 'fa-magnifying-glass' }, { label: 'Endings', href: '/tld', icon: 'fa-list' }, { label: 'Panel', href: '/panel', icon: 'fa-server' }],
+        // Sign-in with OpenVibe.Network (server/auth/sso.js): the control panel is a person's own.
+        silentLogin: '/auth/login?silent=1&next={url}',
+        sessionUrl: '/auth/me',
+        loginUrl: '/auth/login?next={path}',
+        logoutUrl: '/auth/logout?next={path}',
         search: { page: '/search', label: NAME },
         history: { type: 'page', title: title || NAME },
     };

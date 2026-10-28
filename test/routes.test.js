@@ -234,7 +234,7 @@ function stubs() {
         await check('health is ok; readiness is ready while both upstreams answer', async () => {
             const health = await t.get('/api/health');
             assert.strictEqual(health.status, 200);
-            assert.deepStrictEqual(health.json(), { status: 'ok', service: 'openvibe-domains', version: '0.1.0' });
+            assert.deepStrictEqual(health.json(), { status: 'ok', service: 'openvibe-domains', version: require('../package.json').version });
             const ready = await t.get('/api/ready');
             assert.strictEqual(ready.status, 200);
             const json = ready.json();
@@ -242,6 +242,7 @@ function stubs() {
             assert.strictEqual(json.status, 'ready');
             assert.strictEqual(json.checks.host.status, 'ok');
             assert.strictEqual(json.checks.tools.status, 'ok');
+            assert.strictEqual(json.checks.db.status, 'ok', 'the panel\'s database is a required check');
         });
 
         await check('readiness is degraded, not 503, when Host does not answer', async () => {
