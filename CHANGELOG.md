@@ -2,6 +2,20 @@
 
 What changed in OpenVibe.Domains, newest first.
 
+
+## 0.2.0 — 2026-10-28
+
+- **The control panel** (`/panel`, plan 2026-10-28 §5.1, DOM-2):
+  - Sign in with OpenVibe.Network (client `domains`), then connect Cloudflare. The token is verified, then stored as a
+    secret in your own Network project, granted to Domains for calls to api.cloudflare.com only (ADR-056). Domains'
+    database (`ov_domains`) keeps its name, never its value.
+  - Zones are synced; a zone's records are read live from Cloudflare.
+  - Every change (yours, a bulk edit's or an agent's) is a proposal (`domains.proposal@1`): the record diff, why, what
+    could break, and 7 days to decide. Approve on its page or in the Action Center. A record that moved since the
+    proposal is refused as stale; an applied proposal rolls back in one step; everything is audited.
+  - API: `/api/v1/panel/*`, `/api/v1/proposals`; Network's Action Center reads `/api/v1/actions` and decides with
+    `domains.actions.read` and `domains.proposal.decide`. Account export and deletion (ADR-033).
+
 ## 0.1.0 — 2026-10-28
 
 The service skeleton: a stateless read-only front over OpenVibe.Host's price catalog and OpenVibe.Tools' public

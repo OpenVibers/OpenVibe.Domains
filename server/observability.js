@@ -1,20 +1,22 @@
 'use strict';
 
 /**
- * Truthful readiness for GET /api/ready (openvibe-shared/ready). There is no database and no
- * session store: the only dependencies are the two public services this front reads.
- *
- * Both checks are optional. If OpenVibe.Host or OpenVibe.Tools does not answer, the process is
- * still serving (there is a page, even if it says the upstream failed), so the answer is 200 with
- * status "degraded" — never 503. A failed check is named in `degraded`.
+ * Truthful readiness for GET /api/ready (openvibe-shared/ready). The control panel's database is required: without it
+ * the panel cannot serve, so the answer is 503. The two public services the price pages read are optional: if
+ * OpenVibe.Host or OpenVibe.Tools does not answer, the pages still say so, and the answer is 200 "degraded".
  */
 const { createReadiness } = require('openvibe-shared/ready');
 
-function createServiceReadiness({ host, tools, release = null }) {
+function createServiceReadiness({ host, tools, store = null, release = null }) {
     return createReadiness({
         service: 'domains',
         release,
         checks: [
+            ...(store ? [{
+                name: 'db',
+                required: true,
+                check: async () => ((await store.db.value('SELECT 1 AS n')) === 1 ? true : 'the database did not answer'),
+            }] : []),
             {
                 name: 'host',
                 required: false,

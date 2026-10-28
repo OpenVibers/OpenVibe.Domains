@@ -26,6 +26,21 @@ There is no database, no sign-in, no session and no event stream. Nothing is sto
 All of it is server-rendered and readable without JavaScript. The shell is the OpenVibe Frame (`openvibe-shared/shell`):
 theme loader, navbar mounted into `#navbar-mount`, the shared server-rendered footer, service id `domains`.
 
+## The control panel (v2)
+
+`/panel` is a signed-in person's own (sign-in with OpenVibe.Network, client `domains`).
+
+- **Connect:** paste a Cloudflare API token (Edit zone DNS + Zone Read). Domains verifies it, then stores it as a
+  secret in your own Network project (`OpenVibe.Domains`, ADR-056), granted to `domains` for calls to
+  `https://api.cloudflare.com` only. It is revealed per call (`network.secret.use`) and never kept here.
+- **Zones and records:** zones are synced into `domains_zones`; records are read live.
+- **Proposals:** every change is a `domains.proposal@1`: create, update or delete records, why, what could break, and
+  7 days to decide. Approve on `/panel/p/:id` or in the Action Center. Changes apply in order; a record that moved
+  since the proposal stops the run (stale). An applied (or part-applied) proposal rolls back in one step.
+- **API:** `GET /api/v1/panel/connections`, `/api/v1/panel/zones`, `/api/v1/panel/zones/:conn/:zone/records`,
+  `GET|POST /api/v1/proposals`, `POST /api/v1/proposals/:id/decide|rollback` with your Network token; Network's Action
+  Center reads `GET /api/v1/actions?subject=` (`domains.actions.read`) and decides (`domains.proposal.decide`).
+
 ## API
 
 Everything under `/api/v1`, read-only, CORS-open (`Access-Control-Allow-Origin: *`), cached publicly for five
