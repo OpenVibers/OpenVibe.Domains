@@ -1,0 +1,30 @@
+[Unit]
+Description=OpenVibe.Domains — Name it, price it, run it.
+# Host and Tools should be up first, but this front degrades honestly without them: the pages serve,
+# say when an upstream did not answer, and /api/ready reports degraded (see server/observability.js).
+After=network.target
+Wants=openvibe-host.service openvibe-tools.service
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/openvibe.domains
+EnvironmentFile=/etc/openvibe/domains.env
+Environment=NODE_ENV=production
+Environment=PORT=5070
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/bin/env node /opt/openvibe.domains/server/index.js
+Restart=always
+RestartSec=5
+KillSignal=SIGTERM
+# In-flight requests get the 10 s drain.
+TimeoutStopSec=15
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+# Stateless: no database, no data directory, nothing to write.
+
+[Install]
+WantedBy=multi-user.target

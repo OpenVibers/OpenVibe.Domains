@@ -1,0 +1,29 @@
+{
+  "name": "openvibe-domains",
+  "version": "0.1.0",
+  "private": true,
+  "description": "OpenVibe.Domains \u2014 name it, price it, run it.",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "NODE_ENV=development node server/index.js",
+    "test": "node test/run.js"
+  },
+  "keywords": [
+    "openvibe"
+  ],
+  "author": "OpenVibers",
+  "license": "AGPL-3.0-only",
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.1.0",
+    "openvibe-contracts": "https://codeload.github.com/OpenVibers/OpenVibe.Contracts/tar.gz/refs/tags/v0.225.0",
+    "openvibe-sdk": "https://codeload.github.com/OpenVibers/OpenVibe.SDK/tar.gz/refs/tags/v0.70.0",
+    "openvibe-shared": "https://codeload.github.com/OpenVibers/OpenVibe.Shared/tar.gz/refs/tags/v4.29.1"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}

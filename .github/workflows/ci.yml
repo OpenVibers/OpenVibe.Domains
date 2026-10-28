@@ -1,0 +1,17 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  # install, node --check and npm test: the shared test job (Track Q).
+  test:
+    uses: OpenVibers/OpenVibe.Shared/.github/workflows/test.yml@423fe519b5fe9594cc81b670e5ba5cb9f21f6176
+    with:
+      syntax-dirs: server test
+      # OpenVibe.Domains has no database, no Valkey and no event stream: npm test is the whole suite.
+      # No contracts-service yet: openvibe-contracts v0.225.0 has no manifests/services/domains.json.
+      test: npm test
+  # Secret scan (gitleaks) and dependency audit, shared by every OpenVibers repo (Track Q).
+  security:
+    uses: OpenVibers/OpenVibe.Shared/.github/workflows/security.yml@423fe519b5fe9594cc81b670e5ba5cb9f21f6176
