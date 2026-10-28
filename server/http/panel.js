@@ -6,10 +6,11 @@
  * with a service token (domains.actions.read, domains.proposal.decide) for the person X-OV-Subject names.
  *
  *   GET  /panel                         connections, zones, waiting proposals, recent changes
- *   GET  /panel/connect, POST           connect Cloudflare (verified, then stored in the person's Network project)
+ *   GET  /panel/connect, POST           connect Cloudflare or Porkbun (verified, then stored in the person's Network project)
  *   POST /panel/c/:id/sync | /remove
  *   GET  /panel/z/:conn/:zone           a zone's records, live; POST …/propose (create | update | delete)
  *   GET  /panel/p/:id                   a proposal; POST …/decide (approve | decline), POST …/rollback
+ *                                       (a proposal also carries NS and DS registrar changes from the API)
  *
  *   GET  /api/v1/panel/connections | /api/v1/panel/zones | /api/v1/panel/zones/:conn/:zone/records   (person)
  *   GET  /api/v1/proposals, /api/v1/proposals/:id, POST /api/v1/proposals                          (person)
@@ -25,15 +26,15 @@ const { sameOrigin } = require('./principal');
 
 const NOTICES = {
     connected: 'Connected. Your zones are below.',
-    synced: 'Synced with Cloudflare.',
-    removed: 'Removed. Its token was deleted from your OpenVibe project.',
+    synced: 'Synced with the provider.',
+    removed: 'Removed. Its keys were deleted from your OpenVibe project.',
     declined: 'Declined. Nothing changed.',
     rolled_back: 'Rolled back.',
 };
 const PROBLEMS = {
-    'vault.secret_missing': 'That connection\'s token is gone or no longer granted. Remove it and connect again.',
-    'provider.forbidden': 'Cloudflare refused the token. Check it in Cloudflare, then connect again.',
-    'provider.unreachable': 'Cloudflare did not answer. Try again in a moment.',
+    'vault.secret_missing': 'That connection\'s keys are gone or no longer granted. Remove it and connect again.',
+    'provider.forbidden': 'The provider refused the keys. Check them, then connect again.',
+    'provider.unreachable': 'The provider did not answer. Try again in a moment.',
     'vault.unavailable': 'OpenVibe.Network did not answer. Try again in a moment.',
     'vault.signed_out': 'Your sign-in ended. Sign in again.',
 };
@@ -66,12 +67,17 @@ function createPanelRoutes({ config, panel, principal, log = console }) {
 
     pages.get('/panel/connect', (req, res) => (person(req) ? privateHtml(res, 200, views.connect()) : toLogin(req, res)));
     post('/panel/connect', async (req, res, p) => {
+        const provider = req.body.provider || 'cloudflare';
+        // Porkbun's two keys travel to Network as the one JSON secret its client parses; Cloudflare's token as itself.
+        const token = provider === 'porkbun'
+            ? JSON.stringify({ apikey: String(req.body.apikey || '').trim(), secretapikey: String(req.body.secretapikey || '').trim() })
+            : req.body.token;
         try {
-            await panel.connect(p, { provider: req.body.provider || 'cloudflare', label: req.body.label, token: req.body.token });
+            await panel.connect(p, { provider, label: req.body.label, token });
             return res.redirect(303, '/panel?done=connected');
         } catch (err) {
             if (!err.status || err.status >= 500) log.warn('[OpenVibe.Domains] connect failed:', err.code || err.message);
-            return privateHtml(res, err.status && err.status < 500 ? 422 : 503, views.connect({ error: err.status ? err.message : 'That did not work. Try again in a moment.', values: { label: req.body.label } }));
+            return privateHtml(res, err.status && err.status < 500 ? 422 : 503, views.connect({ error: err.status ? err.message : 'That did not work. Try again in a moment.', values: { label: req.body.label, provider } }));
         }
     });
     post('/panel/c/:id/sync', async (req, res, p) => {
@@ -115,7 +121,8 @@ function createPanelRoutes({ config, panel, principal, log = console }) {
             const row = await panel.get(p.subject, req.params.id);
             const pub = { ...panel.toPublic(row), can_roll_back: Array.isArray(row.rollback) ? row.rollback.length > 0 : JSON.parse(row.rollback || '[]').length > 0 };
             const done = String(req.query.done || '');
-            const words = done === 'approved' ? (pub.status === 'applied' ? 'Applied. Cloudflare has the change; caches catch up within the TTL.' : 'Approved, but it did not apply. See why below.') : notice(req);
+            const providerName = pub.provider === 'porkbun' ? 'Porkbun' : 'Cloudflare';
+            const words = done === 'approved' ? (pub.status === 'applied' ? `Applied. ${providerName} has the change; caches catch up within the TTL.` : 'Approved, but it did not apply. See why below.') : notice(req);
             return privateHtml(res, 200, views.proposal({ p: pub, notice: words }));
         } catch (err) {
             if (err.status === 404) return res.redirect(303, '/panel');

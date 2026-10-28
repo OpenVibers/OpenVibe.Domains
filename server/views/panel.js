@@ -37,20 +37,21 @@ function head(kicker, h1, lede = '') {
 
 function signedOut() {
     const steps = [
-        ['link', 'Connect', 'Paste a Cloudflare API token. It is kept as a secret in your own OpenVibe project and only ever sent to Cloudflare.'],
+        ['link', 'Connect', 'Paste a Cloudflare API token or Porkbun API keys. They are kept as a secret in your own OpenVibe project and only ever sent to that provider.'],
         ['spark', 'Propose', 'Every DNS change, yours or an agent\'s, becomes a proposal: the exact records, why, and what could break.'],
         ['check', 'Approve', 'Nothing changes until you approve it, here or in the Action Center. Applied changes roll back in one tap.'],
     ];
     return page('Control panel', `${head('Control panel', 'Run every domain you own from one place', 'Connect your DNS once and see every zone together. Changes wait for your approval, and each one can be undone.')}
 <ol class="dmp-steps">${steps.map(([icon, t, d], i) => `<li><span class="dmp-step-ic">${kit.icon(icon)}</span><b>${i + 1}. ${esc(t)}</b><span>${esc(d)}</span></li>`).join('')}</ol>
 <p class="dmp-actions"><a class="dm-btn" href="/auth/login?next=%2Fpanel">Sign in with OpenVibe</a></p>
-<p class="dm-fine">Cloudflare today; Porkbun, Namecheap and Spaceship follow. OpenVibe never stores your token in its own database and never shows it again.</p>`);
+<p class="dm-fine">Cloudflare and Porkbun today; Namecheap and Spaceship follow. OpenVibe never stores your keys in its own database and never shows them again.</p>`);
 }
 
 function connectionRow(c) {
     const broken = c.status === 'broken';
+    const provider = c.provider === 'porkbun' ? 'Porkbun' : 'Cloudflare';
     return `<li class="dmp-conn${broken ? ' is-broken' : ''}" id="dmp-conn-${esc(c.id)}">
-<div class="dmp-conn-main"><b>${esc(c.label)}</b><span class="dmp-sub">Cloudflare · ${c.zone_count} zone${c.zone_count === 1 ? '' : 's'}${c.checked_at ? ` · checked ${when(c.checked_at)}` : ''}</span>
+<div class="dmp-conn-main"><b>${esc(c.label)}</b><span class="dmp-sub">${provider} · ${c.zone_count} zone${c.zone_count === 1 ? '' : 's'}${c.checked_at ? ` · checked ${when(c.checked_at)}` : ''}</span>
 ${broken ? `<span class="dmp-err">${kit.icon('alert')}${esc(c.last_error || 'The token stopped working.')}</span>` : ''}</div>
 <div class="dmp-conn-act">
 <form method="post" action="/panel/c/${esc(c.id)}/sync"><button class="dmp-btn" type="submit">Sync</button></form>
@@ -69,7 +70,7 @@ function proposalCard(p) {
 function home({ connections = [], zones = [], waiting = [], recent = [], notice = null } = {}) {
     if (!connections.length) {
         return page('Control panel', `${head('Control panel', 'Connect your first account', 'Domains reads your zones through the provider\'s own API. Every change is proposed to you first.')}
-<p class="dmp-actions"><a class="dm-btn" href="/panel/connect">${kit.icon('plus')}Connect Cloudflare</a></p>`, { notice });
+<p class="dmp-actions"><a class="dm-btn" href="/panel/connect">${kit.icon('plus')}Connect Cloudflare or Porkbun</a></p>`, { notice });
     }
     const facts = `<dl class="dm-facts"><div><dt>Zones</dt><dd><b>${zones.length}</b></dd></div><div><dt>Waiting for you</dt><dd><b>${waiting.length}</b></dd></div><div><dt>Connections</dt><dd><b>${connections.length}</b>${connections.some((c) => c.status === 'broken') ? '<small>one needs attention</small>' : ''}</dd></div></dl>`;
     const zoneRows = zones.map((z) => `<a class="dm-tr dmp-zone" id="dmp-zone-${esc(z.zone_id)}" href="/panel/z/${esc(z.connection_id)}/${esc(z.zone_id)}">
@@ -84,21 +85,34 @@ ${recent.length ? `<section aria-labelledby="dmp-recent-h"><h2 id="dmp-recent-h"
 }
 
 function connect({ error = null, values = {} } = {}) {
-    return page('Connect Cloudflare', `${head('<a href="/panel">Control panel</a>', 'Connect Cloudflare')}
+    const provider = values.provider === 'porkbun' ? 'porkbun' : 'cloudflare';
+    const label = values.label || (provider === 'porkbun' ? 'Porkbun' : 'Cloudflare');
+    return page('Connect a provider', `${head('<a href="/panel">Control panel</a>', 'Connect a provider')}
 <div class="dmp-split">
 <form class="dmp-form" method="post" action="/panel/connect" id="dmp-connect" autocomplete="off">
 ${error ? `<p class="dm-warn" role="alert">${kit.icon('alert')}<span>${esc(error)}</span></p>` : ''}
-<input type="hidden" name="provider" value="cloudflare">
-<label class="dmp-field"><span>A name for it</span><input name="label" maxlength="60" value="${esc(values.label || 'Cloudflare')}" required></label>
-<label class="dmp-field"><span>API token</span><input name="token" type="password" minlength="20" maxlength="400" required spellcheck="false" autocomplete="off" placeholder="Paste the token Cloudflare showed you"></label>
+<label class="dmp-field"><span>Provider</span><select name="provider">
+<option value="cloudflare"${provider === 'cloudflare' ? ' selected' : ''}>Cloudflare</option>
+<option value="porkbun"${provider === 'porkbun' ? ' selected' : ''}>Porkbun</option>
+</select></label>
+<label class="dmp-field"><span>A name for it</span><input name="label" maxlength="60" value="${esc(label)}" required></label>
+<label class="dmp-field"><span>Cloudflare API token</span><input name="token" type="password" maxlength="400" spellcheck="false" autocomplete="off" placeholder="Paste the token Cloudflare showed you"></label>
+<label class="dmp-field"><span>Porkbun API key</span><input name="apikey" type="password" maxlength="400" spellcheck="false" autocomplete="off" placeholder="pk1_… from porkbun.com/account/api"></label>
+<label class="dmp-field"><span>Porkbun secret API key</span><input name="secretapikey" type="password" maxlength="400" spellcheck="false" autocomplete="off" placeholder="sk1_… from the same page"></label>
+<p class="dm-fine">Use the token for Cloudflare or the two keys for Porkbun.</p>
 <p class="dmp-actions"><button class="dm-btn" type="submit">${kit.icon('lock')}Connect</button><a class="dmp-btn dmp-btn--quiet" href="/panel">Cancel</a></p>
 </form>
-<aside class="dmp-help" aria-labelledby="dmp-help-h"><h2 id="dmp-help-h">Make a token that can do only this</h2>
+<aside class="dmp-help" aria-labelledby="dmp-help-h"><h2 id="dmp-help-h">Make keys that can do only this</h2>
+<h3>Cloudflare</h3>
 <ol><li>Open <a href="https://dash.cloudflare.com/profile/api-tokens" rel="noopener noreferrer" target="_blank">API tokens</a> in Cloudflare and choose <b>Create token</b>.</li>
 <li>Start from <b>Edit zone DNS</b>. Add <b>Zone · Zone · Read</b> so Domains can list your zones.</li>
 <li>Under <b>Zone resources</b>, pick the zones you want here (or all of them).</li>
 <li>Create it and paste it on the left. Cloudflare shows it once.</li></ol>
-<p class="dmp-where">${kit.icon('shield')}<span>The token is stored as a secret in your own OpenVibe project, granted to OpenVibe.Domains only for calls to <b>api.cloudflare.com</b>. Domains keeps its name, never its value. Remove the connection and the secret goes with it.</span></p>
+<h3>Porkbun</h3>
+<ol><li>Create API keys at <a href="https://porkbun.com/account/api" rel="noopener noreferrer" target="_blank">porkbun.com/account/api</a>.</li>
+<li>Then switch on <b>API access</b> for each domain you want here: Porkbun enables it per domain.</li>
+<li>Paste the API key and secret API key on the left.</li></ol>
+<p class="dmp-where">${kit.icon('shield')}<span>The keys are stored as a secret in your own OpenVibe project, granted to OpenVibe.Domains only for calls to the provider's API (<b>api.cloudflare.com</b> or <b>api.porkbun.com</b>). Domains keeps their name, never their value. Remove the connection and the secret goes with it.</span></p>
 </aside></div>`);
 }
 
@@ -133,20 +147,27 @@ ${error ? `<p class="dm-warn" role="alert">${kit.icon('alert')}<span>${esc(error
 ${recordFields(values)}<label class="dmp-field dmp-field--wide"><span>Why (optional)</span><input name="why" maxlength="300" value="${esc(values.why || '')}"></label>
 <p class="dmp-actions"><button class="dm-btn" type="submit">${kit.icon('plus')}Propose</button></p></form></section>
 <section aria-labelledby="dmp-recs-h"><h2 id="dmp-recs-h">Records</h2>
-${records.length ? `<ul class="dmp-recs">${rows}</ul>` : '<p class="dm-fine">This zone has no records Cloudflare showed us.</p>'}</section>`);
+${records.length ? `<ul class="dmp-recs">${rows}</ul>` : `<p class="dm-fine">This zone has no records ${conn.provider === 'porkbun' ? 'Porkbun' : 'Cloudflare'} showed us.</p>`}</section>`);
 }
 
 function changeCard(c) {
     const b = c.before;
     const a = c.after;
+    if (String(c.type || '').toUpperCase() === 'NS' || Array.isArray(b) || Array.isArray(a)) {
+        const list = (x, side) => `<div class="${side}"><span class="dmp-sub">${side === 'dmp-before' ? 'Now' : 'After'}</span>${Array.isArray(x) && x.length ? `<div class="dmp-ns">${x.map((n) => `<code>${esc(n)}</code>`).join('<br>')}</div>` : '<em>—</em>'}</div>`;
+        return `<li class="dmp-change dmp-change--${esc(c.op)}"><span class="dmp-op">${esc(OP_WORDS[c.op] || c.op)}</span>
+<div class="dmp-change-main"><p class="dmp-change-rec"><span class="dmp-type">NS</span><b>Name servers</b></p>
+<div class="dmp-diff">${list(b, 'dmp-before')}${list(a, 'dmp-after')}</div></div></li>`;
+    }
     const r = a || b || {};
-    const val = (x) => (x ? `<code>${esc(x.content)}</code><span class="dmp-sub">${x.ttl === 1 ? 'Auto TTL' : `TTL ${esc(x.ttl)}`}${x.priority != null ? ` · priority ${esc(x.priority)}` : ''}${x.proxied ? ' · proxied' : ''}</span>` : '');
+    const val = (x) => (x ? `<code>${esc(x.content)}</code>${x.type === 'DS' ? '' : `<span class="dmp-sub">${x.ttl === 1 ? 'Auto TTL' : `TTL ${esc(x.ttl)}`}${x.priority != null ? ` · priority ${esc(x.priority)}` : ''}${x.proxied ? ' · proxied' : ''}</span>`}` : '');
     return `<li class="dmp-change dmp-change--${esc(c.op)}"><span class="dmp-op">${esc(OP_WORDS[c.op] || c.op)}</span>
 <div class="dmp-change-main"><p class="dmp-change-rec"><span class="dmp-type">${esc(r.type)}</span><b>${esc(r.name)}</b></p>
 <div class="dmp-diff">${b ? `<div class="dmp-before"><span class="dmp-sub">Now</span>${val(b)}</div>` : ''}${a ? `<div class="dmp-after"><span class="dmp-sub">${b ? 'After' : 'New'}</span>${val(a)}</div>` : '<div class="dmp-after"><span class="dmp-sub">After</span><em>Removed</em></div>'}</div></div></li>`;
 }
 
 function proposal({ p, notice = null } = {}) {
+    const providerName = p.provider === 'porkbun' ? 'Porkbun' : 'Cloudflare';
     const rolledBackable = (p.status === 'applied' || p.status === 'failed') && p.can_roll_back;
     const actions = p.status === 'pending'
         ? `<form method="post" action="/panel/p/${esc(p.id)}/decide"><input type="hidden" name="decision" value="approve"><button class="dm-btn" type="submit">${kit.icon('check')}Approve and apply</button></form>
@@ -160,7 +181,7 @@ ${p.error ? `<p class="dm-warn" role="alert">${kit.icon('alert')}<span>${esc(p.e
 ${p.why ? `<section aria-labelledby="dmp-why-h"><h2 id="dmp-why-h">Why</h2><p class="dmp-text">${esc(p.why)}</p></section>` : ''}
 ${p.risk ? `<section aria-labelledby="dmp-risk-h"><h2 id="dmp-risk-h">What could break</h2><p class="dmp-text">${esc(p.risk)}</p></section>` : ''}
 ${actions ? `<div class="dmp-decide">${actions}</div>` : ''}
-<p class="dm-fine">${p.status === 'pending' ? 'Approving applies the changes through Cloudflare\'s API, one by one. If a record changed since this was proposed, nothing more is applied and you can roll back what was.' : 'Every step is kept in your panel\'s audit.'}</p>`, { notice });
+<p class="dm-fine">${p.status === 'pending' ? `Approving applies the changes through ${providerName}'s API, one by one. If a record or nameserver set changed since this was proposed, nothing more is applied and you can roll back what was.` : 'Every step is kept in your panel\'s audit.'}</p>`, { notice });
 }
 
 module.exports = { signedOut, home, connect, zone, proposal, describe };
