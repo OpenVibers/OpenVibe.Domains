@@ -103,7 +103,7 @@ function createDiscoveryRoutes(ctx) {
                 ] },
                 { title: 'The data it reads', links: [
                     { title: 'OpenVibe.Host domain prices', url: 'https://openvibe.host/catalog/domains', note: 'the catalog and the registry name check' },
-                    { title: 'OpenVibe.Tools domain history', url: 'https://openvibe.tools/network/whois', note: 'RDAP\'s public facts, kept over time' },
+                    { title: 'OpenVibe.Tools domain history', url: 'https://whois.openvibe.tools/', note: 'RDAP\'s public facts, kept over time' },
                 ] },
             ],
         }));
