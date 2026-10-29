@@ -128,7 +128,7 @@ function createPageRoutes(ctx) {
         send(res, 200, await renderPublicPage('/tld'));
     });
 
-    r.get('/developers', (_req, res) => send(res, 200, views.developers({ canonical: abs('/developers') })));
+    r.get('/developers', async (_req, res) => send(res, 200, await renderPublicPage('/developers')));
 
     // A person who types "/.dev" gets the ending page. The ending is normalized in one 301.
     r.get(/^\/\.([^/]+)$/, (req, res) => {
