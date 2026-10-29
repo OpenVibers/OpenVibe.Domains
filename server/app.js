@@ -153,8 +153,25 @@ async function createApp(opts = {}) {
     });
 
     // ── Pages ───────────────────────────────────────────────
+    const pages = createPageRoutes(ctx);
     app.use(panelRoutes.pages);
-    app.use(createPageRoutes(ctx));
+    // ── Agent layer (openvibe-shared/agent-layer) ───────────
+    // The manifest and the Markdown twins of the public pages. Gated to twin requests only, so a browser always
+    // reaches the site's own route (and the panel's signed-in pages are never rendered signed out).
+    {
+        const agentLayer = require('openvibe-shared/agent-layer');
+        const agent = express.Router();
+        agent.use((req, _res, next) => {
+            const twinPath = req.path.endsWith('.md');
+            const twinFormat = req.query.format === 'markdown';
+            const twinAccept = !!(req.headers.accept && req.accepts(['html', 'text/markdown']) === 'text/markdown');
+            if (req.path === '/.well-known/agent.json' || twinPath || twinFormat || twinAccept) return next();
+            return next('router');
+        });
+        agentLayer.mount(agent, { descriptor: require('./agent-descriptor'), render: pages.renderPublicPage });
+        app.use(agent);
+    }
+    app.use(pages);
 
     // eslint-disable-next-line no-unused-vars
     app.use((err, req, res, _next) => {
