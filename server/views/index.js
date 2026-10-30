@@ -22,6 +22,7 @@ const kit = require('openvibe-shared/kit');
 const sc = require('openvibe-shared/showcase');
 const rooms = require('openvibe-shared/rooms');
 const { priceRows } = require('../pricing');
+const { foldSection } = require('./short');
 
 const NAME = 'OpenVibe.Domains';
 const NETWORK = 'https://openvibe.network';
@@ -149,7 +150,7 @@ function home({ endings, lists } = {}) {
         + `<ul class="dm-board">${rows.slice(0, 12).map(tile).join('')}</ul></section>` : '';
     const looked = lists && Array.isArray(lists.most_looked_up) ? lists.most_looked_up.slice(0, 8) : [];
     const lookedHTML = looked.length ? `<section class="dm-looked" aria-labelledby="dm-looked-h"><h2 id="dm-looked-h">Looked up most</h2><ul class="dm-chips">${looked.map((d) => `<li><a href="/d/${encodeURIComponent(d.domain || d.name || '')}">${esc(d.domain || d.name || '')}</a></li>`).join('')}</ul></section>` : '';
-    const body = sc.room({
+    let body = sc.room({
         room: 'domains',
         hero: {
             title: ROOM.line,
@@ -182,6 +183,10 @@ function home({ endings, lists } = {}) {
             ['Is a name I search for kept?', 'Searches are not tied to you. A domain\'s public history is kept only after it has been looked up five times, and holds public registration facts only.'],
         ] },
     });
+    // The home on a phone (the owner's short-pages rule, 2026-10-30): the questions and the API samples are folds, so
+    // the room is one or two screens. Both stay in the page for the crawlers and open where there is room.
+    body = foldSection(body, 'class="sc-faq"', 'faq-fold');
+    body = foldSection(body, 'class="sc-code"', 'dev-fold');
     return layout({ title: null, canonical: undefined, body: `<div class="dm-wrap">${body}</div>`, active: '/', jsonLd: [{ '@context': 'https://schema.org', '@type': 'WebSite', name: NAME, url: 'https://openvibe.domains/', potentialAction: { '@type': 'SearchAction', target: 'https://openvibe.domains/search?q={name}', 'query-input': 'required name=name' } }] });
 }
 
