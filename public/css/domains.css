@@ -78,6 +78,15 @@ html, body { margin: 0; background: var(--bg-primary, #0a0f1c); color: var(--tex
 .dm-btn { display: inline-flex; align-items: center; min-height: 40px; padding: 0 16px; border-radius: 999px; background: var(--room-fill); font-weight: 700; font-size: .92rem; text-decoration: none; }
 .dm a.dm-btn { color: var(--room-on); }
 .dm a.dm-btn.is-quiet { background: transparent; color: var(--room-strong); border: 1px solid color-mix(in srgb, var(--room-accent) 45%, var(--border, #1f2d47)); }
+
+/* 8 touch targets (2026-10-29): the hero chips are 44 px tall; its two action links and the lone section link gain
+   vertical-only hit areas. */
+@media (pointer: coarse) {
+  .dm .sc-room-chips a { min-height: 44px; }
+  .dm article.is-in a, .dm article.is-flip a, .dm-more { position: relative; }
+  .dm article.is-in a::after, .dm article.is-flip a::after { content: ''; position: absolute; left: 0; right: 0; top: -2px; bottom: -2px; }
+  .dm-more::after { content: ''; position: absolute; left: 0; right: 0; top: -14px; bottom: -14px; }
+}
 .dm-btn:focus-visible { outline: 2px solid var(--room-accent); outline-offset: 2px; }
 
 /* An ending's page. */
@@ -244,4 +253,12 @@ html[data-ov-motion=reduced] .dm-bar span { transform: none !important; transiti
     .dmp-zones .dm-tr { grid-template-columns: minmax(0, 1fr) auto; }
     .dmp-zones .dm-tr > span:nth-child(2), .dmp-zones .dm-tr > span:nth-child(3), .dmp-zones .dm-tr > span:nth-child(4) { display: none; }
     .dmp-change { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Touch targets on phones (fleet audit, 2026-10-29): touch pointers only. */
+@media (pointer: coarse) {
+  .sc-room-chips a { min-height: 44px; }
+  .ov-room article a, .dm-more { position: relative; }
+  .ov-room article a::after { content: ''; position: absolute; left: 0; right: 0; top: -4px; bottom: -4px; }
+  .dm-more::after { content: ''; position: absolute; left: 0; right: 0; top: -14px; bottom: -14px; }
 }
