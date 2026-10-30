@@ -10,11 +10,11 @@
   "domain": "openvibe.domains",
   "contracts": "openvibe-contracts v0.233.0",
   "sdk": "openvibe-sdk v0.74.0",
-  "shared": "openvibe-shared v4.45.0",
+  "shared": "openvibe-shared v4.48.0",
   "packages": [
     "openvibe-contracts v0.233.0",
     "openvibe-sdk v0.74.0",
-    "openvibe-shared v4.45.0"
+    "openvibe-shared v4.48.0"
   ],
   "summary": "OpenVibe.Domains is a stateless front: no database, no sign-in, no events. It reads OpenVibe.Host's internal catalog (GET /api/v1/catalog/domains, /domains/check?name=, /domains/:tld) and OpenVibe.Tools' public history (GET /api/v1/domains, /domains/:domain) through small in-process caches, prices every registrar row into one-, three- and five-year totals with the cheap-first-year renewal trap, and serves server-rendered pages (home, name search, one ending, one domain) plus a read-only JSON API. It has the service plumbing the other OpenVibe sites have: helmet/CSP, health and truthful readiness (degraded, never 503, when either upstream is down), release.json and /release-metrics, /shared, robots/sitemap/llms, a per-IP limit on /api/v1 and /search, graceful stop, deploy files and tests.",
   "works": [

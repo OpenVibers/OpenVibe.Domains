@@ -62,7 +62,10 @@ async function startNetwork() {
         if (p === '/api/.well-known/jwks') return json(200, { public_key: publicPem, algorithm: 'RS256' });
         if (p === '/oauth/revoke') return json(200, {});
         if (p === '/oauth/token' && req.method === 'POST') {
-            const body = Object.fromEntries(new URLSearchParams(raw));
+            // The SDK sends the token request as JSON (the old module sent a form); both are read here.
+            const ct = String(req.headers['content-type'] || '');
+            let body;
+            try { body = ct.includes('json') ? (JSON.parse(raw) || {}) : Object.fromEntries(new URLSearchParams(raw)); } catch { body = {}; }
             if (body.client_id !== 'domains' || body.client_secret !== 'domains-secret') return json(401, { error: 'invalid_client' });
             if (body.grant_type === 'client_credentials') {
                 const caps = String(body.scope || '').split(/\s+/).filter(Boolean);
