@@ -9,6 +9,7 @@ const configLib = require('../server/config');
 const { createApp } = require('../server/app');
 const { createStore, MIGRATIONS } = require('../server/db');
 const { createTestDb } = require('openvibe-sdk/testing');
+const { startNetwork } = require('./helpers/network');
 
 let failures = 0;
 
@@ -36,7 +37,10 @@ function done() {
  */
 async function boot({ config, host, tools, release, network = null, providers, fetchImpl, now } = {}) {
     const env = { NODE_ENV: 'test', PORT: '0', BASE_URL: 'https://openvibe.domains', TRUST_PROXY: '1' };
-    if (network) Object.assign(env, { OV_NETWORK_URL: network.url, OV_NETWORK_INTERNAL_URL: network.url, OV_NETWORK_ISSUER: network.url, OV_OAUTH_CLIENT_ID: 'domains', OV_OAUTH_CLIENT_SECRET: 'domains-secret' });
+    // Every boot gets a Network stand-in: the sign-in routes and the readiness check talk to it.
+    const ownNetwork = network ? null : await startNetwork();
+    network = network || ownNetwork;
+    Object.assign(env, { OV_NETWORK_URL: network.url, OV_NETWORK_INTERNAL_URL: network.url, OV_NETWORK_ISSUER: network.url, OV_OAUTH_CLIENT_ID: 'domains', OV_OAUTH_CLIENT_SECRET: 'domains-secret' });
     const cfg = config || configLib.load(env);
     const quiet = { log() {}, info() {}, warn() {}, error() {} };
     const testDb = await createTestDb({ migrations: MIGRATIONS, store: process.env.DOMAINS_TEST_STORE || 'pglite', service: 'domains', max: 4 });
@@ -67,6 +71,7 @@ async function boot({ config, host, tools, release, network = null, providers, f
         signIn: (user) => `dom_at=${network.userToken(user)}`,
         async close() {
             await new Promise((resolve) => server.close(resolve));
+            if (ownNetwork) await ownNetwork.close();
             try { await (testDb.close ? testDb.close() : store.close()); } catch { /* already closed */ }
         },
     };
