@@ -17,7 +17,7 @@ const { boot, check, done } = require('./helpers');
             assert.strictEqual(r.status, 200, r.text);
             for (const id of ['faq-fold', 'dev-fold']) {
                 assert.ok(r.text.includes(`<details class="hm-fold hm-fold-block" id="${id}" open>`), `${id} is a fold, open in the page`);
-                assert.ok(r.text.includes(`document.getElementById("${id}")`), `${id} has the script that closes it on a phone`);
+                assert.ok(!r.text.includes(`document.getElementById("${id}")`), `${id} is never closed by script`);
             }
             // The content of the folds stays in the page.
             assert.match(r.text, /Where do the prices come from\?/);
