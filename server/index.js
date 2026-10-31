@@ -33,7 +33,10 @@ async function start() {
     const { config } = ctx;
     const recovered = await ctx.panel.recover();
     if (recovered) console.warn(`[OpenVibe.Domains] ${recovered} proposal(s) were left applying by the last stop: marked failed for their people to check`);
-    const server = app.listen(config.port, config.host, () => {
+    // Socket activation (2026-10-31): systemd's .socket unit holds the listener across restarts, so a deploy
+    // queues requests in the kernel instead of answering 502. Without the socket unit, the usual listen.
+    const socketActivated = process.env.LISTEN_FDS === '1' && Number(process.env.LISTEN_PID) === process.pid;
+    const server = app.listen(...(socketActivated ? [{ fd: 3 }] : [config.port, config.host]), () => {
         console.log(`[OpenVibe.Domains] ${config.nodeEnv} on http://${config.host}:${config.port} → ${config.baseUrl} (host ${config.hostUrl}, tools ${config.toolsUrl})`);
         // Warm the Network signing keys once listening, so readiness and the first signed-in page do not wait.
         if (ctx.keys.ensure) ctx.keys.ensure().catch(() => {});
