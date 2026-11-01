@@ -132,6 +132,22 @@ function stubs() {
             assert.ok(missing.text.includes('Not found'));
         });
 
+        await check('every indexable page names its canonical and the site card', async () => {
+            const pages = [
+                ['/', 'https://openvibe.domains/'],
+                ['/tld', 'https://openvibe.domains/tld'],
+                ['/tld/dev', 'https://openvibe.domains/tld/dev'],
+                ['/developers', 'https://openvibe.domains/developers'],
+                ['/d/example.com', 'https://openvibe.domains/d/example.com'],
+            ];
+            for (const [path, canonical] of pages) {
+                const r = await t.get(path);
+                assert.strictEqual(r.status, 200, `${path}: status`);
+                assert.ok(r.text.includes(`<link rel="canonical" href="${canonical}">`), `${path}: canonical ${canonical}`);
+                assert.match(r.text, /<meta property="og:image" content="https:\/\/[^"]+">/, `${path}: og:image`);
+            }
+        });
+
         await check('GET /d/example.com: 200 with history and its ending\'s prices; bad domain: 404', async () => {
             const r = await t.get('/d/example.com');
             assert.strictEqual(r.status, 200);
