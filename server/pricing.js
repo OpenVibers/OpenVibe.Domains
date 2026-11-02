@@ -28,9 +28,13 @@ const cents = (n) => Math.round((n + 1e-9) * 100) / 100;
 function priceRows(rows) {
     const list = (Array.isArray(rows) ? rows : []).map((row, index) => {
         const r = row && typeof row === 'object' ? row : {};
-        const register = num(r.register);
-        const renew = num(r.renew);
-        const fiveYear = num(r.five_year);
+        // A price of 0 means the registrar does not sell that ending: treat it as missing.
+        const registerRaw = num(r.register);
+        const renewRaw = num(r.renew);
+        const fiveYearRaw = num(r.five_year);
+        const register = registerRaw === 0 ? null : registerRaw;
+        const renew = renewRaw === 0 ? null : renewRaw;
+        const fiveYear = fiveYearRaw === 0 ? null : fiveYearRaw;
         const y1 = register == null ? null : cents(register);
         const y3 = register == null || renew == null ? null : cents(register + 2 * renew);
         const y5 = fiveYear != null ? cents(fiveYear)

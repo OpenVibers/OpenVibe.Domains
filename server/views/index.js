@@ -22,6 +22,7 @@ const kit = require('openvibe-shared/kit');
 const sc = require('openvibe-shared/showcase');
 const rooms = require('openvibe-shared/rooms');
 const { priceRows } = require('../pricing');
+const { foldSection } = require('./short');
 
 const NAME = 'OpenVibe.Domains';
 const NETWORK = 'https://openvibe.network';
@@ -150,7 +151,7 @@ function home({ endings, lists, canonical } = {}) {
         + `<ul class="dm-board">${rows.slice(0, 12).map(tile).join('')}</ul></section>` : '';
     const looked = lists && Array.isArray(lists.most_looked_up) ? lists.most_looked_up.slice(0, 8) : [];
     const lookedHTML = looked.length ? `<section class="dm-looked" aria-labelledby="dm-looked-h"><h2 id="dm-looked-h">Looked up most</h2><ul class="dm-chips">${looked.map((d) => `<li><a href="/d/${encodeURIComponent(d.domain || d.name || '')}">${esc(d.domain || d.name || '')}</a></li>`).join('')}</ul></section>` : '';
-    const body = sc.room({
+    let body = sc.room({
         room: 'domains',
         hero: {
             title: ROOM.line,
@@ -183,6 +184,10 @@ function home({ endings, lists, canonical } = {}) {
             ['Is a name I search for kept?', 'Searches are not tied to you. A domain\'s public history is kept only after it has been looked up five times, and holds public registration facts only.'],
         ] },
     });
+    // The home on a phone (the owner's short-pages rule, 2026-10-30): the questions and the API samples are folds, so
+    // the room is one or two screens. Both stay in the page for the crawlers and open where there is room.
+    body = foldSection(body, 'class="sc-faq"', 'faq-fold');
+    body = foldSection(body, 'class="sc-code"', 'dev-fold');
     return layout({ agentLayer: true, title: null, canonical, body: `<div class="dm-wrap">${body}</div>`, active: '/', jsonLd: [{ '@context': 'https://schema.org', '@type': 'WebSite', name: NAME, url: 'https://openvibe.domains/', potentialAction: { '@type': 'SearchAction', target: 'https://openvibe.domains/search?q={name}', 'query-input': 'required name=name' } }] });
 }
 
@@ -223,11 +228,11 @@ ${priceTable(rows, { by: 'ending', label: `${label} in every ending`, check: nam
     return layout({ agentLayer: true, title: `${full}: price and availability`, description: `${full}: whether it is free, and what every ending costs over 1, 3 and 5 years.`, robots: 'noindex, follow', body: `<div class="dm-wrap">${body}</div>`, active: '/' });
 }
 
-function endings({ endings: list } = {}) {
+function endings({ endings: list, canonical } = {}) {
     const rows = priceRows((list && list.tlds) || []);
     const body = `<header class="dm-page-h"><h1>Every ending</h1><p class="dm-lede">All the endings OpenVibe prices, cheapest to keep over three years first.${latest(rows) ? ` Prices checked ${esc(day(latest(rows)))}.` : ''}</p>${searchBox()}</header>
 ${rows.length ? priceTable(rows, { by: 'ending', label: 'Every ending' }) : kit.empty({ title: 'No prices yet', text: 'The price lists are being read. Try again in a few minutes.' })}`;
-    return layout({ agentLayer: true, title: 'Every ending, cheapest to keep', description: 'Every domain ending OpenVibe prices, sorted by what three years really cost.', body: `<div class="dm-wrap">${body}</div>`, active: '/tld' });
+    return layout({ agentLayer: true, title: 'Every ending, cheapest to keep', description: 'Every domain ending OpenVibe prices, sorted by what three years really cost.', canonical, body: `<div class="dm-wrap">${body}</div>`, active: '/tld' });
 }
 
 /** A small history chart: each registrar's first-year price over time, as steps (real changes only). */
@@ -247,7 +252,7 @@ function historyChart(history, currency) {
     return `<figure class="dm-chart"><svg viewBox="0 0 600 160" role="img" aria-label="First-year price over time">${lines}</svg><figcaption>First-year price over time${currency && currency !== 'USD' ? ` (${esc(currency)})` : ''}, each registrar a line.</figcaption></figure>`;
 }
 
-function tld({ tld: t } = {}) {
+function tld({ tld: t, canonical } = {}) {
     const rows = (t && t.prices) || [];
     const name = t ? (t.display || dot(t.tld)) : '';
     const best = rows.find((r) => !r.currency_other && r.y3 != null);
@@ -267,10 +272,10 @@ ${searchBox()}</header>
 <p class="dm-fine">From each registrar's own public price list.${latest(rows) ? ` Checked ${esc(day(latest(rows)))}.` : ''} Affiliate links, where there are any, are marked and never change the order.</p>
 ${rows.length ? priceTable(rows, { by: 'registrar', label: `Registrars for ${name}` }) : '<p class="dm-fine">No registrar prices this ending yet.</p>'}</section>
 <section aria-labelledby="dm-hist-h"><h2 id="dm-hist-h">Price history</h2>${chart || `<p class="dm-fine">No price changes recorded${rows.length && rows[0].first_seen_at ? ` since ${esc(day(rows.map((r) => r.first_seen_at).filter(Boolean).sort()[0]))}` : ''}. Every change from now on is kept here.</p>`}</section>`;
-    return layout({ agentLayer: true, title: `${name} domain prices: every registrar, 1, 3 and 5 years`, description: `What ${name} costs at every registrar OpenVibe reads: first year, renewal and the real 3- and 5-year totals.`, body: `<div class="dm-wrap">${body}</div>`, active: '/tld' });
+    return layout({ agentLayer: true, title: `${name} domain prices: every registrar, 1, 3 and 5 years`, description: `What ${name} costs at every registrar OpenVibe reads: first year, renewal and the real 3- and 5-year totals.`, canonical, body: `<div class="dm-wrap">${body}</div>`, active: '/tld' });
 }
 
-function domain({ name, history, prices = [], status = null, check = null } = {}) {
+function domain({ name, history, prices = [], status = null, check = null, canonical } = {}) {
     const full = name ? (name.display || name.ascii) : '';
     const h = history || {};
     const snaps = Array.isArray(h.snapshots) ? h.snapshots : [];
@@ -291,11 +296,11 @@ ${status ? `<p class="dm-status ${(STATUS[status] || ['is-unknown'])[0]}"><span 
 <section aria-labelledby="dm-rec-h"><h2 id="dm-rec-h">Public record</h2>${record || `<p class="dm-fine">OpenVibe keeps a domain's history once it has been looked up ${Number(h.min_lookups || 5)} times${h.lookups ? ` (${Number(h.lookups)} so far)` : ''}. <a href="https://whois.openvibe.tools/?q=${encodeURIComponent(name ? name.ascii : '')}">Look it up now on OpenVibe.Tools</a>.</p>`}
 ${timeline ? `<h3>What changed</h3>${timeline}` : ''}</section>
 ${prices.length ? `<section aria-labelledby="dm-p-h"><h2 id="dm-p-h">What ${esc(dot(name.tld))} costs</h2>${priceTable(prices, { by: 'ending', label: `${dot(name.tld)} prices` })}</section>` : ''}`;
-    return layout({ agentLayer: true, title: `${full}: public record and history`, description: `${full}: its registrar, dates and how they changed, from public records only.`, robots: snaps.length ? 'index, follow' : 'noindex, follow', body: `<div class="dm-wrap">${body}</div>` });
+    return layout({ agentLayer: true, title: `${full}: public record and history`, description: `${full}: its registrar, dates and how they changed, from public records only.`, canonical, robots: snaps.length ? 'index, follow' : 'noindex, follow', body: `<div class="dm-wrap">${body}</div>` });
 }
 
 /** The API, for people and agents: every endpoint with a call that copies. */
-function developers() {
+function developers({ canonical } = {}) {
     const rows = [
         ['GET /api/v1/search?q=sushitruck', 'A name: whether it is free (the registry\'s answer) and every ending\'s prices with 1, 3 and 5-year totals, cheapest over three years first.'],
         ['GET /api/v1/tlds?sort=renew', 'Every ending OpenVibe prices (sort popular, tld, register or renew; q, kind and page narrow it).'],
@@ -306,7 +311,7 @@ function developers() {
 <section aria-labelledby="dm-ep-h"><h2 id="dm-ep-h">Endpoints</h2><dl class="dm-eps">${rows.map(([ep, what]) => `<div><dt><code>${esc(ep)}</code></dt><dd>${esc(what)}</dd></div>`).join('')}</dl></section>
 ${sc.code({ title: 'Try it', samples: [{ label: 'Price a name', lang: 'bash', code: 'curl "https://openvibe.domains/api/v1/search?q=sushitruck"' }, { label: 'JavaScript', lang: 'js', code: "const r = await fetch('https://openvibe.domains/api/v1/tlds/dev').then((x) => x.json());\nconsole.log(r.tld.prices[0]);" }] })}
 <p class="dm-fine">Limits: 120 requests a minute from one address. Errors are problem+json (RFC 9457). <a href="/llms.txt">llms.txt</a> describes the site for agents.</p>`;
-    return layout({ agentLayer: true, title: 'The Domains API', description: 'Open JSON for domain prices, availability and history: every ending and registrar, with 1, 3 and 5-year totals.', body: `<div class="dm-wrap">${body}</div>`, active: '/developers' });
+    return layout({ agentLayer: true, title: 'The Domains API', description: 'Open JSON for domain prices, availability and history: every ending and registrar, with 1, 3 and 5-year totals.', canonical, body: `<div class="dm-wrap">${body}</div>`, active: '/developers' });
 }
 
 function notFound() {

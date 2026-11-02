@@ -82,7 +82,7 @@ async function createApp(opts = {}) {
     release.mount(app, { registry: metrics.registry });
 
     app.get('/api/health', (_req, res) => res.json({ status: 'ok', service: 'openvibe-domains', version: VERSION }));
-    const readiness = createServiceReadiness({ host, tools, store, release: release.release });
+    const readiness = createServiceReadiness({ host, tools, store, release: release.release, sso});
     app.get('/api/ready', readiness.handler);
 
     app.use(contracts.http.middleware());
