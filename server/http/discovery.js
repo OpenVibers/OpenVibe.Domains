@@ -68,7 +68,7 @@ function createDiscoveryRoutes(ctx) {
             sitemaps: [abs('/sitemap.xml')],
             allow: ['/'],
             disallow: [],
-        }));
+        }) + `# Agent manifest: ${abs('/.well-known/agent.json')}\n`);
     });
 
     r.get('/sitemap.xml', async (_req, res) => {
