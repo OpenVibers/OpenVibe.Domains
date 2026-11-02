@@ -31,6 +31,20 @@ const esc = kit.esc;
 const PUBLIC = path.join(__dirname, '..', '..', 'public');
 
 const hashes = new Map();
+/**
+ * The home's picture (MOTION-1, 2026-11-02: sc.room drew its default motif): one name, priced the way every page here
+ * prices it. Three registrars with the first year, the renewal and what three years really cost, the cheapest to keep
+ * marked, and the cheap first year that renews high flagged. A sample, said as one.
+ */
+function domainsMotif() {
+    const row = (name, y1, renew, three, mark = '') => `<li class="dm-mf-row${mark === 'best' ? ' is-best' : ''}"><span class="dm-mf-reg">${name}${mark === 'best' ? '<em>cheapest to keep</em>' : mark === 'trap' ? '<em class="is-trap">renews high</em>' : ''}</span><span>${y1}</span><span>${renew}</span><b>${three}</b></li>`;
+    return `<div class="dm-motif" aria-hidden="true">
+<div class="dm-mf-name"><b>sushitruck.dev</b><span class="dm-mf-ok">✓ available</span></div>
+<div class="dm-mf-cols"><span>registrar · sample</span><span>1st yr</span><span>renews</span><span>3 years</span></div>
+<ol class="dm-mf-list">${row('Porkbun', '$11', '$11', '$33', 'best')}${row('Namecheap', '$9', '$16', '$41')}${row('Budget Reg', '$2', '$22', '$46', 'trap')}</ol>
+</div>`;
+}
+
 function asset(rel) {
     if (!hashes.has(rel)) {
         let v = 'dev';
@@ -158,6 +172,7 @@ function home({ endings, lists, canonical } = {}) {
             lede: 'Type a name. See every ending and every registrar, with what you will really pay over one, three and five years, and the renewal traps flagged.',
             search: { action: '/search', name: 'q', placeholder: 'Price a name, like sushitruck', label: 'A name to price', button: 'Price it', hints: ['sushitruck', 'mybrand.dev', 'cozy cafe', 'pixel.studio'] },
             chips: popular.map((r) => ({ label: r.display || dot(r.tld), href: tldHref(r.tld) })),
+            motif: domainsMotif(),
         },
         proof: [
             { value: all.length, label: all.length === 1 ? 'ending priced' : 'endings priced', asOf: checked ? day(checked) : null },
