@@ -315,3 +315,19 @@ html[data-ov-motion=reduced] .dm-bar span { transform: none !important; transiti
   .dm-board::-webkit-scrollbar { display: none; }
   .dm-board > li { flex: 0 0 62%; min-width: 0; scroll-snap-align: start; }
 }
+
+/* ── The home's picture: one name, priced (MOTION-1, 2026-11-02) ──────────────────────────────────────────────────── */
+.dm-motif { width: min(100%, 370px); margin: 0 auto; display: grid; gap: 10px; padding: 16px; border-radius: 18px; border: 1px solid var(--ovk-line, rgba(255, 255, 255, .1)); background: var(--ovk-panel, #141c2a); box-shadow: 0 12px 30px rgba(0, 0, 0, .22); font-variant-numeric: tabular-nums; }
+.dm-mf-name { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.dm-mf-name b { font: 700 17px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--ovk-text, #e8ecf3); overflow-wrap: anywhere; }
+.dm-mf-ok { font-size: 12.5px; font-weight: 700; color: var(--ovk-ok-text, var(--ovk-ok, #22c55e)); white-space: nowrap; }
+.dm-mf-cols, .dm-mf-row { display: grid; grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(0, .7fr)); gap: 8px; align-items: center; }
+.dm-mf-cols { font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: var(--ovk-muted, #93a0b4); padding: 0 10px; }
+.dm-mf-cols span:not(:first-child), .dm-mf-row > span:not(:first-child), .dm-mf-row b { text-align: right; }
+.dm-mf-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.dm-mf-row { padding: 9px 10px; border-radius: 10px; background: var(--ovk-bg, #0f1522); font-size: 13px; color: var(--ovk-muted, #93a0b4); }
+.dm-mf-row b { color: var(--ovk-text, #e8ecf3); }
+.dm-mf-reg { display: grid; gap: 1px; color: var(--ovk-text, #e8ecf3); min-width: 0; }
+.dm-mf-reg em { font-style: normal; font-size: 11px; font-weight: 700; color: var(--room-strong, var(--ovk-accent, #3b82f6)); }
+.dm-mf-reg em.is-trap { color: var(--ovk-warn-text, var(--ovk-warn, #f59e0b)); }
+.dm-mf-row.is-best { outline: 2px solid color-mix(in srgb, var(--room-accent, var(--ovk-accent, #3b82f6)) 55%, transparent); outline-offset: -2px; }

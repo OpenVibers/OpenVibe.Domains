@@ -25,6 +25,12 @@ const { boot, check, done } = require('./helpers');
             assert.ok(r.text.includes('<section class="sc-sec" id="faq"') || r.text.includes('aria-labelledby="sc-questions"'), 'the questions keep their section');
         });
 
+        await check('the hero is one name priced, not sc.room\'s default motif (MOTION-1)', async () => {
+            const r = await t.get('/');
+            assert.match(r.text, /<div class="dm-motif" aria-hidden="true">/);
+            assert.match(r.text, /sushitruck\.dev[\s\S]*?cheapest to keep[\s\S]*?renews high/);
+            assert.ok(!/class="sc-room-motif"/.test(r.text), 'no default motif');
+        });
         await check('the CSS guard: the folds are closed on a phone only, and the endings are one row', async () => {
             const css = fs.readFileSync(path.join(__dirname, '..', 'public', 'css', 'domains.css'), 'utf8');
             assert.match(css, /\.hm-fold-block > summary \{[^}]*min-height: 44px/, 'a fold is a 44 px target');
