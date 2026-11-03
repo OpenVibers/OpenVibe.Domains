@@ -2,6 +2,7 @@
 // What openvibe.domains tells an agent about itself (openvibe-shared/agent-layer): /.well-known/agent.json.
 // Every field is something this site really serves: the open JSON API under /api/v1 and the developers page that
 // documents it. No OpenAPI document or MCP endpoint is published.
+// 11-03 (SEO-3): this site serves /openapi.json now (the contracts' document for it), so it is named below.
 module.exports = {
     id: 'domains',
     name: 'OpenVibe.Domains',
@@ -10,6 +11,7 @@ module.exports = {
     site: 'openvibe.domains',
     api: '/api/v1',
     docs: '/developers',
+    openapi: '/openapi.json',
     policy: {
         auth: ['none', 'Network OIDC'],
         rateLimit: '120 API and name-query requests a minute per address; pages are not rate limited',
