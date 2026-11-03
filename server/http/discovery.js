@@ -95,12 +95,15 @@ function createDiscoveryRoutes(ctx) {
                     { title: 'One ending', url: abs('/tld/dev'), note: 'every registrar\'s first year, three years and five years' },
                     { title: 'One domain', url: abs('/d/example.com'), note: 'public history from OpenVibe.Tools and its ending\'s prices' },
                 ] },
+                // The API is a primary entry for an agent, not something to skip.
+                { title: 'API', links: [
+                    { title: 'Search a name (JSON)', url: abs('/api/v1/search?q=example.com') },
+                    { title: 'Every ending (JSON)', url: abs('/api/v1/tlds?sort=popular') },
+                    { title: 'One ending (JSON)', url: abs('/api/v1/tlds/dev') },
+                    { title: 'One domain (JSON)', url: abs('/api/v1/domains/example.com') },
+                ] },
             ],
             optional: [
-                { title: 'Search a name (JSON)', url: abs('/api/v1/search?q=example.com') },
-                { title: 'Every ending (JSON)', url: abs('/api/v1/tlds?sort=popular') },
-                { title: 'One ending (JSON)', url: abs('/api/v1/tlds/dev') },
-                { title: 'One domain (JSON)', url: abs('/api/v1/domains/example.com') },
                 { title: 'Sitemap', url: abs('/sitemap.xml') },
                 { title: 'Release metadata', url: abs('/release.json') },
                 { title: 'OpenVibe.Host domain prices', url: 'https://openvibe.host/catalog/domains', note: 'the catalog and the registry name check' },
