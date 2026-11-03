@@ -81,8 +81,8 @@ function createDiscoveryRoutes(ctx) {
         res.type('application/xml').set('Cache-Control', TEXT_CACHE).send(seo.sitemapXml(urls));
     });
 
-    r.get('/llms.txt', (_req, res) => {
-        res.type('text/plain').set('Cache-Control', TEXT_CACHE).send(seo.llmsTxt({
+    // The site as llms.txt describes it, shared by /llms.txt and /llms-full.txt (SEO-33).
+    const llmsSite = () => ({
             name: SITE_NAME,
             summary: 'OpenVibe.Domains is a stateless front over OpenVibe.Host\'s price catalog and OpenVibe.Tools\' public domain history: for a name, whether it is registered and every registrar\'s one-, three- and five-year totals; for an ending, every registrar\'s prices; for a domain, its public registration facts over time.',
             details: 'There is no account, no database and no event stream. Every page is server-rendered and readable without JavaScript. USD is compared; other currencies are kept after it and marked. A renewal trap marks a cheap first year whose renewal is the real price.',
@@ -105,6 +105,19 @@ function createDiscoveryRoutes(ctx) {
                     { title: 'OpenVibe.Host domain prices', url: 'https://openvibe.host/catalog/domains', note: 'the catalog and the registry name check' },
                     { title: 'OpenVibe.Tools domain history', url: 'https://whois.openvibe.tools/', note: 'RDAP\'s public facts, kept over time' },
                 ] },
+            ],
+        });
+    r.get('/llms.txt', (_req, res) => {
+        res.type('text/plain').set('Cache-Control', TEXT_CACHE).send(seo.llmsTxt(llmsSite()));
+    });
+    // The same, in full (SEO-33): what the site is, then every page llms.txt lists with what it holds.
+    r.get('/llms-full.txt', (_req, res) => {
+        const d = llmsSite();
+        res.type('text/plain').set('Cache-Control', TEXT_CACHE).send(seo.llmsFull({
+            site: d.name, summary: d.summary, base: abs('/'),
+            sections: [
+                { title: 'About', pages: [{ title: d.name, url: abs('/'), text: [d.summary, d.details].filter(Boolean).join('\n\n') }] },
+                ...(d.sections || []).map((x) => ({ title: x.title, pages: (x.links || []).map((l) => ({ title: l.title, url: l.url, text: l.note || '' })) })),
             ],
         }));
     });
