@@ -123,6 +123,17 @@ async function createApp(opts = {}) {
 
     // This service's own pinned copy of the Frame, and its stylesheet (content-hashed by the views: kept a year).
     app.use('/shared', serve.handler());
+    // Terms, Privacy and DMCA in this site's own words (openvibe-shared/legal, profile 'public'; 11-03: the footer's
+    // legal links answered 404 here). The facts must match the code: change both together.
+    const legal = require('openvibe-shared/legal');
+    app.get(legal.PATHS, legal.handler({
+        "host": "openvibe.domains",
+        "name": "OpenVibe.Domains",
+        "id": "domains",
+        "service": "domains",
+        "profile": "public",
+        "what": "Every ending and every registrar for a name, with what you will really pay over 1, 3 and 5 years, the renewal traps flagged, and each domain's public history."
+    }));
     app.use('/css', express.static(path.join(__dirname, '..', 'public', 'css'), { maxAge: '365d', immutable: true, fallthrough: false }));
     require('./views').setRelease(release.release);
 
