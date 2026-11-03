@@ -86,25 +86,25 @@ function createDiscoveryRoutes(ctx) {
             name: SITE_NAME,
             summary: 'OpenVibe.Domains is a stateless front over OpenVibe.Host\'s price catalog and OpenVibe.Tools\' public domain history: for a name, whether it is registered and every registrar\'s one-, three- and five-year totals; for an ending, every registrar\'s prices; for a domain, its public registration facts over time.',
             details: 'There is no account, no database and no event stream. Every page is server-rendered and readable without JavaScript. USD is compared; other currencies are kept after it and marked. A renewal trap marks a cheap first year whose renewal is the real price.',
+            markdown: true,
+            base: config.baseUrl,
             sections: [
                 { title: 'Pages', links: [
                     { title: 'Every ending', url: abs('/'), note: 'the price catalog, popular endings first' },
-                    { title: 'Check a name', url: abs('/search?q=example.com'), note: 'registry status and registrar totals; noindex' },
+                    { title: 'Check a name', url: abs('/search?q=example.com'), note: 'registry status and registrar totals; noindex', html: true },
                     { title: 'One ending', url: abs('/tld/dev'), note: 'every registrar\'s first year, three years and five years' },
                     { title: 'One domain', url: abs('/d/example.com'), note: 'public history from OpenVibe.Tools and its ending\'s prices' },
                 ] },
-                { title: 'API', links: [
-                    { title: 'Search a name (JSON)', url: abs('/api/v1/search?q=example.com') },
-                    { title: 'Every ending (JSON)', url: abs('/api/v1/tlds?sort=popular') },
-                    { title: 'One ending (JSON)', url: abs('/api/v1/tlds/dev') },
-                    { title: 'One domain (JSON)', url: abs('/api/v1/domains/example.com') },
-                    { title: 'Sitemap', url: abs('/sitemap.xml') },
-                    { title: 'Release metadata', url: abs('/release.json') },
-                ] },
-                { title: 'The data it reads', links: [
-                    { title: 'OpenVibe.Host domain prices', url: 'https://openvibe.host/catalog/domains', note: 'the catalog and the registry name check' },
-                    { title: 'OpenVibe.Tools domain history', url: 'https://whois.openvibe.tools/', note: 'RDAP\'s public facts, kept over time' },
-                ] },
+            ],
+            optional: [
+                { title: 'Search a name (JSON)', url: abs('/api/v1/search?q=example.com') },
+                { title: 'Every ending (JSON)', url: abs('/api/v1/tlds?sort=popular') },
+                { title: 'One ending (JSON)', url: abs('/api/v1/tlds/dev') },
+                { title: 'One domain (JSON)', url: abs('/api/v1/domains/example.com') },
+                { title: 'Sitemap', url: abs('/sitemap.xml') },
+                { title: 'Release metadata', url: abs('/release.json') },
+                { title: 'OpenVibe.Host domain prices', url: 'https://openvibe.host/catalog/domains', note: 'the catalog and the registry name check' },
+                { title: 'OpenVibe.Tools domain history', url: 'https://whois.openvibe.tools/', note: 'RDAP\'s public facts, kept over time' },
             ],
         });
     r.get('/llms.txt', (_req, res) => {
