@@ -238,6 +238,15 @@ function stubs() {
             assert.ok(r.text.includes('<lastmod>2026-10-28</lastmod>'));
         });
 
+        await check('llms-full.txt (SEO-33): the site in full, from the same descriptor as llms.txt', async () => {
+            const r = await t.get('/llms-full.txt');
+            assert.strictEqual(r.status, 200);
+            assert.match(r.headers.get('content-type') || '', /^text\/plain/);
+            assert.ok(r.text.startsWith('# OpenVibe.Domains'), r.text.slice(0, 60));
+            assert.ok(r.text.length > 500, `${r.text.length} characters`);
+            assert.match(r.text, /## About\n\n### /);
+        });
+
         await check('llms.txt describes the site and its API', async () => {
             const r = await t.get('/llms.txt');
             assert.strictEqual(r.status, 200);
