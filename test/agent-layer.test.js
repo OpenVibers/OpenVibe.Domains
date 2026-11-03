@@ -38,7 +38,7 @@ const tools = {
             assert.strictEqual(m.api, 'https://openvibe.domains/api/v1');
             assert.strictEqual(m.docs, 'https://openvibe.domains/developers');
             assert.deepStrictEqual(m.policy.auth, ['none', 'Network OIDC']);
-            assert.strictEqual(m.openapi, undefined);
+            assert.strictEqual(m.openapi, 'https://openvibe.domains/openapi.json', 'the contracts\' document, served since 11-03 (SEO-3)');
             assert.strictEqual(m.mcp, undefined);
         });
 
