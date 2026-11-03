@@ -254,6 +254,8 @@ function stubs() {
             assert.ok(r.text.startsWith('# OpenVibe.Domains'));
             assert.ok(r.text.includes('https://openvibe.domains/api/v1/search?q=example.com'));
             assert.ok(r.text.includes('https://openvibe.host/catalog/domains'));
+            assert.ok(r.text.includes('\n## Optional\n'));
+            assert.ok(r.text.includes('(https://openvibe.domains/index.md)'));
         });
 
         await check('health is ok; readiness is ready while both upstreams answer', async () => {
