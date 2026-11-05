@@ -8,11 +8,11 @@
   "runtime": "node 22, express 4",
   "port": "5070",
   "domain": "openvibe.domains",
-  "contracts": "openvibe-contracts v0.233.0",
+  "contracts": "openvibe-contracts v0.289.1",
   "sdk": "openvibe-sdk v0.82.0",
   "shared": "openvibe-shared v4.109.2",
   "packages": [
-    "openvibe-contracts v0.233.0",
+    "openvibe-contracts v0.289.1",
     "openvibe-sdk v0.82.0",
     "openvibe-shared v4.109.2"
   ],
@@ -54,5 +54,5 @@
     "deploy files"
   ],
   "deployment": "Not deployed yet. Reference unit deploy/systemd/openvibe-domains.service (127.0.0.1:5070, /opt/openvibe.domains, /etc/openvibe/domains.env, user ubuntu) and vhost deploy/nginx/openvibe.domains.conf (openvibe.domains and www, certs under /etc/letsencrypt/live/openvibe.domains/).",
-  "updated": "2026-11-03"
+  "updated": "2026-11-05"
 }
