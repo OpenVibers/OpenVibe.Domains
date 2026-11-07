@@ -37,6 +37,7 @@ const { openStore } = require('./db');
 const { createKeyStore } = require('./auth/keys');
 const { createSso } = require('./auth/sso');
 const { createPrincipal } = require('./http/principal');
+const settingsLib = require('./settings');
 const { createVault } = require('./panel/vault');
 const { createCloudflare } = require('./panel/cloudflare');
 const { createPorkbun } = require('./panel/porkbun');
@@ -63,12 +64,25 @@ async function createApp(opts = {}) {
     const keys = createKeyStore({ config, fetchImpl, log });
     const sso = createSso({ config, keys, fetchImpl, now: store.now, log });
     const principal = createPrincipal({ config, keys });
+    // D11 owner settings (domains.registrars): created before the app mounts /internal/config. A failure leaves
+    // Domains serving (the registrar keys fall back to the environment) and says why in the log.
+    let settings = null;
+    if (opts.settings) settings = opts.settings;
+    else {
+        try {
+            const made = settingsLib.createSettings({ db: store.db, env: opts.env || process.env, log });
+            await made.ready;
+            settings = settingsLib.activate(made);
+        } catch (err) {
+            log.warn('[OpenVibe.Domains] owner settings unavailable, the registrar keys fall back to the environment:', err && err.message);
+        }
+    }
     const vault = opts.vault || createVault({ config, fetchImpl });
     const providers = opts.providers || { cloudflare: createCloudflare({ fetchImpl }), porkbun: createPorkbun({ fetchImpl }) };
     const panel = createPanel({ store, vault, providers, log });
     const accountData = accountDataLib.create({ db: store.db, log });
     const accountSend = opts.accountSend || (config.oauth.clientSecret ? createNetworkSender({ networkInternalUrl: config.networkInternalUrl, clientId: config.oauth.clientId, clientSecret: config.oauth.clientSecret, fetch: fetchImpl }) : null);
-    const ctx = { config, host, tools, log, release, store, keys, sso, principal, vault, panel, accountData };
+    const ctx = { config, host, tools, log, release, store, keys, sso, principal, settings, vault, panel, accountData };
 
     const app = express();
     // GET /openapi.json (SEO-3): this service's public API as OpenAPI 3.1, generated from the contracts
@@ -134,6 +148,29 @@ async function createApp(opts = {}) {
     // ── OpenVibe.Events → this service (loopback only; nginx answers 404 for /internal/). The consumer reads the raw
     // body itself, so it is mounted before any body parser.
     app.use('/internal/events', accountData.consumer({ secrets: config.events.secrets, send: accountSend }));
+
+    // ── D11 owner settings (openvibe-shared/config): Network's admin proxy, acting for the owner, reads and
+    // writes domains.registrars (the Cloudflare and Porkbun keys). Loopback only, guarded by
+    // domains.config.manage; a secret change needs X-OV-Fresh: 1.
+    if (settings) {
+        const internalOnly = (req, res, next) => {
+            if (req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || req.headers['cf-connecting-ip']) {
+                return res.status(404).json({ code: 'domains.not_found', error: 'no such route' });
+            }
+            return next();
+        };
+        const configCapability = (req, res, next) => {
+            const p = req.principal;
+            if (!p || p.kind !== 'service') return res.status(401).json({ code: 'token.required', error: 'a Network service token with domains.config.manage is required' });
+            const contracts = require('openvibe-contracts');
+            const decision = contracts.capabilities.check(p.claims, 'domains.config.manage');
+            const granted = decision.allowed || contracts.capabilities.grants(p.claims.cap, 'domains.config.manage');
+            if (!granted) return res.status(403).json({ code: 'capability.denied', error: 'domains.config.manage is not granted' });
+            return next();
+        };
+        app.use('/internal/config', express.json({ limit: '64kb' }));
+        settings.mount(app, { guard: [internalOnly, principal.middleware, configCapability], log });
+    }
 
     // ── Who is asking (the session cookie, verified offline) and sign-in ──
     app.use(sso.middleware());
