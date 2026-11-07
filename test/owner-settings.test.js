@@ -37,7 +37,7 @@ const PBS = 'porkbun-owner-secret-sentinel';
             assert.ok(f, `${key} exists`);
             assert.ok(f.title && f.title.length >= 3);
             assert.ok(f.description && f.description.length >= 30);
-            assert.strictEqual(f['x-owner-input'].group, 'Domains');
+            assert.strictEqual(f['x-owner-input'].group, 'domains');
             assert.ok(f['x-owner-input'].unlocks.length > 20);
             assert.ok(/^https:\/\//.test(f['x-owner-input'].get_it_at));
             assert.strictEqual(f['x-owner-input'].test, true);

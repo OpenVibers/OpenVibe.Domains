@@ -31,7 +31,7 @@ const SCHEMA = Object.freeze({
             type: 'string', title: 'Cloudflare API token', 'x-group': GROUP,
             description: 'A Cloudflare API token that may list and edit the zones Domains manages. It lets the service read zones for people who connected Cloudflare; without it only a person\'s own connection works.',
             'x-owner-input': {
-                group: GROUP,
+                group: 'domains',
                 unlocks: 'Cloudflare zones and DNS records can be read and changed with the service-wide account.',
                 get_it_at: 'https://dash.cloudflare.com/profile/api-tokens',
                 get_it_how: 'Create a token with Zone:Read and DNS:Edit, then paste it here.',
@@ -43,7 +43,7 @@ const SCHEMA = Object.freeze({
             type: 'string', title: 'Porkbun API key', 'x-group': GROUP,
             description: 'The Porkbun API key from your account\'s API page. Together with its secret it lets Domains read and change Porkbun DNS; the key alone does nothing.',
             'x-owner-input': {
-                group: GROUP,
+                group: 'domains',
                 unlocks: 'Porkbun domains and DNS records can be read and changed with the service-wide account.',
                 get_it_at: 'https://porkbun.com/account/api',
                 get_it_how: 'Enable the API, create a key pair, and paste the API key and its secret key here.',
@@ -55,7 +55,7 @@ const SCHEMA = Object.freeze({
             type: 'string', title: 'Porkbun secret API key', 'x-group': GROUP,
             description: 'The secret half of the Porkbun API key pair. It is locked when saved and never shown again; make a new pair at Porkbun if it is lost.',
             'x-owner-input': {
-                group: GROUP,
+                group: 'domains',
                 unlocks: 'Porkbun accepts Domains\' requests: the secret signs every call.',
                 get_it_at: 'https://porkbun.com/account/api',
                 get_it_how: 'It is shown next to the API key when the pair is made. Copy it then; Porkbun cannot show it again.',
