@@ -2,6 +2,9 @@
 
 > Name it, price it, run it.
 
+**Live site:** https://openvibe.domains · **API docs:** https://openvibe.services · **For AI:** https://openvibe.domains/llms.txt
+**Run it:** `npm ci && npm run dev` (Node 22 or newer) · **Tests:** `npm test`
+
 **Status:** v1 is the service skeleton (see [STATUS.json](STATUS.json)); the pages are plain placeholders.
 **Domain:** `openvibe.domains` · **Port:** 5070 · **Service id:** `domains` · **Env prefix:** `DOMAINS`
 **License:** AGPL-3.0-only (same as every OpenVibe service).

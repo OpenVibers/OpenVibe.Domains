@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use OpenVibe.Domains in research or a product, cite it as below."
+title: openvibe-domains
+type: software
+authors:
+  - name: OpenVibe
+    alias: OpenVibers
+    website: https://openvibe.network
+repository-code: https://github.com/OpenVibers/OpenVibe.Domains
+url: https://openvibe.domains
+license: AGPL-3.0-only
+abstract: "Search and compare every domain ending and registrar, with the real price, at openvibe.domains."
+keywords:
+  - openvibe
+  - comparison
+  - dns
+  - domains
+  - registrar
