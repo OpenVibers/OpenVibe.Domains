@@ -8,11 +8,11 @@
   "runtime": "node 22, express 4",
   "port": "5070",
   "domain": "openvibe.domains",
-  "contracts": "openvibe-contracts v0.338.0",
+  "contracts": "openvibe-contracts v0.373.0",
   "sdk": "openvibe-sdk v0.123.0",
   "shared": "openvibe-shared v4.173.0",
   "packages": [
-    "openvibe-contracts v0.338.0",
+    "openvibe-contracts v0.373.0",
     "openvibe-sdk v0.123.0",
     "openvibe-shared v4.173.0"
   ],
