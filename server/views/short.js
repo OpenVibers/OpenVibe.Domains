@@ -63,7 +63,7 @@ function foldMeta(body, cls = '') {
  *   foldBlock({ id, head, html })
  */
 function foldBlock({ id, head, html }) {
-    return `<details class="hm-fold hm-fold-block" id="${esc(id)}" open><summary>${head}${foldMeta(html)}</summary>${html}</details>${foldScript(id)}`;
+    return `<details class="hm-fold hm-fold-block" id="${esc(id)}" open><summary>${head}${foldMeta(html, 'hm-fold-n')}</summary>${html}</details>${foldScript(id)}`;
 }
 
 /** The script a fold carries: closed on a phone unless the reader opened it before, and it remembers that. */
@@ -93,7 +93,7 @@ function foldSection(html, needle, id) {
     // The lede under the heading goes with it: the fold's heading says enough on a phone.
     const lede = /<p class="sc-lede"[^>]*>[\s\S]*?<\/p>/.exec(inner);
     if (lede) inner = inner.slice(0, lede.index) + inner.slice(lede.index + lede[0].length);
-    const fold = `<details class="hm-fold hm-fold-block" id="${esc(id)}" open><summary>${head}${foldMeta(inner.trim())}</summary>${inner.trim()}</details>${foldScript(id)}`;
+    const fold = `<details class="hm-fold hm-fold-block" id="${esc(id)}" open><summary>${head}${foldMeta(inner.trim(), 'hm-fold-n')}</summary>${inner.trim()}</details>${foldScript(id)}`;
     return html.slice(0, start) + openTag + fold + html.slice(close);
 }
 
