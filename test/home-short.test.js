@@ -25,6 +25,28 @@ const { boot, check, done } = require('./helpers');
             assert.ok(r.text.includes('<section class="sc-sec" id="faq"') || r.text.includes('aria-labelledby="sc-questions"'), 'the questions keep their section');
         });
 
+        await check('each fold summary says what it holds, and only its count is hidden on a wide screen', async () => {
+            const r = await t.get('/');
+            const folds = [...r.text.matchAll(/<details class="hm-fold hm-fold-block" id="([^"]+)"[^>]*>([\s\S]*?)<\/details>/g)];
+            assert.ok(folds.length >= 2, 'the home has the questions and API folds');
+            for (const [, id, inner] of folds) {
+                const summary = /<summary>([\s\S]*?)<\/summary>/.exec(inner);
+                assert.ok(summary, `${id} has a summary`);
+                assert.match(summary[1], /<span class="hm-fold-n">/, `${id} marks its count, so the stylesheet can hide only the count`);
+                const words = summary[1]
+                    .replace(/<span class="hm-fold-n">[\s\S]*?<\/span>/g, '')
+                    .replace(/<span[^>]*aria-hidden="true"[^>]*>[\s\S]*?<\/span>/g, '')
+                    .replace(/<[^>]+>/g, ' ')
+                    .replace(/&[^;]+;/g, ' ')
+                    .replace(/\s+/g, ' ').trim();
+                assert.ok(words.length > 2, `${id} names what it holds in words ("${words}")`);
+            }
+            // The wide-screen rule hides the count only; a rule for every span would hide the heading's own words.
+            const css = fs.readFileSync(path.join(__dirname, '..', 'public', 'css', 'domains.css'), 'utf8');
+            assert.ok(!/\.hm-fold-block > summary span\s*\{[^}]*display:\s*none/.test(css), 'no rule hides every span in a fold summary');
+            assert.match(css, /\.hm-fold-block > summary \.hm-fold-n\s*\{[^}]*display:\s*none/, 'the wide-screen rule hides the count');
+        });
+
         await check('the hero is one name priced, not sc.room\'s default motif (MOTION-1)', async () => {
             const r = await t.get('/');
             assert.match(r.text, /<div class="dm-motif" aria-hidden="true">/);
