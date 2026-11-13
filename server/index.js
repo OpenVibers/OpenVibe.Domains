@@ -37,7 +37,7 @@ async function start() {
     // queues requests in the kernel instead of answering 502. Without the socket unit, the usual listen.
     const socketActivated = process.env.LISTEN_FDS === '1' && Number(process.env.LISTEN_PID) === process.pid;
     const server = app.listen(...(socketActivated ? [{ fd: 3 }] : [config.port, config.host]), () => {
-        console.log(`[OpenVibe.Domains] ${config.nodeEnv} on http://${config.host}:${config.port} → ${config.baseUrl} (host ${config.hostUrl}, tools ${config.toolsUrl})`);
+        console.log(`[OpenVibe.Domains] ${config.nodeEnv} on http://${config.host}:${config.port} (public ${config.baseUrl}) (host ${config.hostUrl}, tools ${config.toolsUrl})`);
         // Warm the Network signing keys once listening, so readiness and the first signed-in page do not wait.
         if (ctx.keys.ensure) ctx.keys.ensure().catch(() => {});
     });

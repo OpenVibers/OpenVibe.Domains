@@ -303,7 +303,7 @@ function domain({ name, history, prices = [], status = null, check = null, canon
     const LABEL = { registrar: 'Registrar', created: 'Registered', expires: 'Expiry', status: 'Status', nameservers: 'Name servers', dnssec: 'DNSSEC' };
     const shown = (field, v) => (v == null || (Array.isArray(v) && !v.length) ? 'none' : field === 'created' || field === 'expires' ? day(v) : field === 'dnssec' ? (v ? 'signed' : 'not signed') : list(v));
     const timeline = changes.length ? `<ol class="dm-timeline">${changes.slice(0, 30).map((c) => `<li><time datetime="${esc(c.at || '')}">${esc(day(c.at))}</time>`
-        + `${(c.changes || []).map((x) => `<span>${esc(LABEL[x.field] || x.field)}: ${esc(shown(x.field, x.before))} → <b>${esc(shown(x.field, x.after))}</b></span>`).join('')}</li>`).join('')}</ol>` : '';
+        + `${(c.changes || []).map((x) => `<span>${esc(LABEL[x.field] || x.field)}: ${esc(shown(x.field, x.before))} to <b>${esc(shown(x.field, x.after))}</b></span>`).join('')}</li>`).join('')}</ol>` : '';
     const watch = `https://openvibe.watch/watches/new?template=json&url=${encodeURIComponent(`https://openvibe.domains/api/v1/domains/${name ? name.ascii : ''}`)}&value_path=status&op=changed&name=${encodeURIComponent(`${full} changes`)}`;
     const body = `<header class="dm-page-h"><p class="dm-kicker">Domain</p><h1>${esc(full)}</h1>
 ${status ? `<p class="dm-status ${(STATUS[status] || ['is-unknown'])[0]}"><span class="dm-pill">${(STATUS[status] || [null, 'The registry did not answer'])[1]}</span>${status === 'registered' && check ? ` <span>${[check.registrar ? `with ${esc(check.registrar)}` : '', check.expires ? `until ${esc(day(check.expires))}` : ''].filter(Boolean).join(' ')}</span>` : ''}</p>` : ''}
