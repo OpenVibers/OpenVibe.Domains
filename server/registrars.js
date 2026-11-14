@@ -99,7 +99,7 @@ const REGISTRARS = [
                 words: 'A Gandi personal access token. It is the one key Domains needs to read and change the Gandi domains your account holds.',
             },
         ],
-        get_it_at: 'https://account.gandi.net/api/',
+        get_it_at: 'https://admin.gandi.net/organizations/account/pat',
         get_it_how: 'Create a personal access token with the domain rights, then paste it here.',
     },
     {
@@ -116,7 +116,7 @@ const REGISTRARS = [
                 words: 'The secret that signs Dynadot calls. It is locked when saved and never shown again; make a new pair at Dynadot if it is lost.',
             },
         ],
-        get_it_at: 'https://www.dynadot.com/account/api',
+        get_it_at: 'https://www.dynadot.com/account/domain/setting/api.html',
         get_it_how: 'Create an API key and secret on that page, then paste both here.',
     },
     {
