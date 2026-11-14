@@ -174,7 +174,9 @@ async function createApp(opts = {}) {
 
     // ── Who is asking (the session cookie, verified offline) and sign-in ──
     app.use(sso.middleware());
-    app.use('/auth/', rateLimit({ windowMs: 15 * 60_000, limit: 60, standardHeaders: true, legacyHeaders: false }));
+    // The Dock's token call (the navbar's Alerts, 11-14) is a probe like the session probe, never a sign-in: it
+    // keeps its own budget so a signed-in person's page views do not spend the sign-in budget twice.
+    app.use('/auth/', rateLimit({ windowMs: 15 * 60_000, limit: 60, skip: (req) => req.path === '/navbar-token', standardHeaders: true, legacyHeaders: false }));
     app.use('/auth', sso.routes());
 
     // This service's own pinned copy of the Frame, and its stylesheet (content-hashed by the views: kept a year).

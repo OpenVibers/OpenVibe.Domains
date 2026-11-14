@@ -221,6 +221,18 @@ function createSso({ config, keys, fetchImpl = globalThis.fetch, now = () => Dat
             return res.redirect(303, nextOf(req.query.next));
         });
 
+        // The shared navbar's Dock and Alerts read the person's Network places with their token. This site's access
+        // token is HTTP-only (httpOnlyAccess: no script can read it), so the navbar asks for it here: same-origin only,
+        // never cached. Without it the menu's Alerts said "Your notifications are on your account" (the owner, 11-14).
+        r.get('/navbar-token', (req, res) => {
+            res.set({ 'Cache-Control': 'private, no-store', Vary: 'Cookie' });
+            const site = String(req.get('sec-fetch-site') || '');
+            if (site && site !== 'same-origin') return res.status(403).json({ error: 'Same-origin only', code: 'domains.navbar_token.cross_site' });
+            const token = req.token || (req.viewer && req.viewer.token) || null;
+            if (!req.user || !token) return res.status(401).json({ error: 'Not signed in', code: 'domains.navbar_token.signed_out' });
+            return res.json({ token });
+        });
+
         // The SDK's own routes: /login, /callback, /fedcm, /refresh, /health.
         r.use(sso.router(express));
         return r;
