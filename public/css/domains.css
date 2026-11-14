@@ -330,3 +330,5 @@ html[data-ov-motion=off] .dm-bar span{transform: none !important}
 .dm-mf-reg em { font-style: normal; font-size: 11px; font-weight: 700; color: var(--room-strong, var(--ovk-accent, #3b82f6)); }
 .dm-mf-reg em.is-trap { color: var(--ovk-warn-text, var(--ovk-warn, #f59e0b)); }
 .dm-mf-row.is-best { outline: 2px solid color-mix(in srgb, var(--room-accent, var(--ovk-accent, #3b82f6)) 55%, transparent); outline-offset: -2px; }
+/* Design rule 201: the intro is one line on a computer, at most two on a phone. */
+@media (max-width: 640px) { .dm-lede { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; } }
