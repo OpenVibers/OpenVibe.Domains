@@ -214,7 +214,10 @@ function createSettings({ db, env = process.env, log = console, fetchImpl = glob
             if (!schema.properties[key]) return res.status(404).json({ error: 'no such setting' });
             try {
                 const out = await test(req.params.namespace, key);
-                return res.status(200).json({ ok: Boolean(out.ok), detail: String(out.detail).replace(/\s+/g, ' ').slice(0, 200) });
+                // The Setup tab reads `message` (openvibe-shared's own test hook answers { ok, message }); `detail`
+                // stays for anything that wants the same line under its other name.
+                const message = String(out.detail || '').replace(/\s+/g, ' ').slice(0, 300);
+                return res.status(200).json({ ok: Boolean(out.ok), message, detail: message });
             } catch (err) {
                 appLog.warn(`[config] ${req.params.namespace}: the test for ${key} failed: ${String((err && err.message) || err).slice(0, 160)}`);
                 return res.status(200).json({ ok: false, detail: 'failed — the test did not finish. The service log has the reason.' });

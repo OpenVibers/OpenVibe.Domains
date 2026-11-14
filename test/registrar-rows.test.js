@@ -196,6 +196,7 @@ function recordedFetch(calls) {
                 assert.strictEqual(res.status, 200);
                 assert.strictEqual(body.ok, true, `${registrar.name}: ${body.detail}`);
                 assert.ok(/^ok — /.test(body.detail), body.detail);
+                assert.strictEqual(body.message, body.detail, 'the Setup tab reads the same line under message');
                 assert.ok(!body.detail.includes('\n'), 'one line');
                 for (const cred of Object.values(CREDS[registrar.id])) assert.ok(!body.detail.includes(cred), 'no key in the answer');
             }
@@ -225,6 +226,7 @@ function recordedFetch(calls) {
                 assert.strictEqual(res.status, 200);
                 assert.strictEqual(body.ok, false, `${registrar.name}`);
                 assert.ok(/^failed — /.test(body.detail), body.detail);
+                assert.strictEqual(body.message, body.detail, 'the Setup tab reads the same line under message');
                 assert.ok(!body.detail.includes('\n'), 'one line');
                 for (const cred of Object.values(CREDS[registrar.id])) assert.ok(!body.detail.includes(cred), 'no key in the answer');
             }
