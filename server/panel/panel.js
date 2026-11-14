@@ -150,17 +150,17 @@ function dsKey(record) {
 function describe(c) {
     if (isNameserverChange(c)) {
         const list = (v) => (Array.isArray(v) ? v.join(', ') : '?');
-        return `Change name servers: ${list(c.before)} → ${list(c.after)}`;
+        return `Change name servers from ${list(c.before)} to ${list(c.after)}`;
     }
     const r = c.after || c.before || {};
     if (isDsChange(c) || r.type === 'DS') {
         if (c.op === 'delete') return `Remove DS ${r.name} (${r.content})`;
-        if (c.op === 'update') return `Change DS ${r.name}: ${c.before ? c.before.content : '?'} → ${c.after ? c.after.content : '?'}`;
+        if (c.op === 'update') return `Change DS ${r.name}: ${c.before ? c.before.content : '?'} to ${c.after ? c.after.content : '?'}`;
         return `Add DS ${r.name} (${r.content})`;
     }
-    if (c.op === 'create') return `Add ${r.type} ${r.name} → ${r.content}`;
+    if (c.op === 'create') return `Add ${r.type} ${r.name} with ${r.content}`;
     if (c.op === 'delete') return `Remove ${r.type} ${r.name} (${r.content})`;
-    return `Change ${r.type} ${r.name}: ${c.before ? c.before.content : '?'} → ${c.after ? c.after.content : '?'}`;
+    return `Change ${r.type} ${r.name} from ${c.before ? c.before.content : '?'} to ${c.after ? c.after.content : '?'}`;
 }
 
 /** What could break, in words, when the asker did not say. */
