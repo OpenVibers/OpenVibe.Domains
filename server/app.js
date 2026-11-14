@@ -70,7 +70,7 @@ async function createApp(opts = {}) {
     if (opts.settings) settings = opts.settings;
     else {
         try {
-            const made = settingsLib.createSettings({ db: store.db, env: opts.env || process.env, log });
+            const made = settingsLib.createSettings({ db: store.db, env: opts.env || process.env, log, fetchImpl });
             await made.ready;
             settings = settingsLib.activate(made);
         } catch (err) {
@@ -150,8 +150,8 @@ async function createApp(opts = {}) {
     app.use('/internal/events', accountData.consumer({ secrets: config.events.secrets, send: accountSend }));
 
     // ── D11 owner settings (openvibe-shared/config): Network's admin proxy, acting for the owner, reads and
-    // writes domains.registrars (the Cloudflare and Porkbun keys). Loopback only, guarded by
-    // domains.config.manage; a secret change needs X-OV-Fresh: 1.
+    // writes domains.registrars (the registrar keys) and domains.dnssec (the DNSSEC step). Loopback only, guarded
+    // by domains.config.manage; a secret change needs X-OV-Fresh: 1.
     if (settings) {
         const internalOnly = (req, res, next) => {
             if (req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || req.headers['cf-connecting-ip']) {

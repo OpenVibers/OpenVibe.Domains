@@ -1,81 +1,107 @@
 'use strict';
 
 /**
- * Owner settings (D11) for OpenVibe.Domains: the registrar keys in `domains.registrars`.
+ * Owner settings (D11) for OpenVibe.Domains: the registrar keys in `domains.registrars` and the DNSSEC step in
+ * `domains.dnssec`.
  *
- * The registrars Domains works with are Cloudflare and Porkbun (server/panel/panel.js). A person's
- * own connection token is still read from their Network vault for that person's zones; these owner
- * keys are the service-wide fallback, read through registrarKeys() at the moment a registrar call is
- * made. The admin panel's value wins over CLOUDFLARE_API_TOKEN / PORKBUN_API_KEY /
- * PORKBUN_SECRET_API_KEY. Secrets are sealed by the shared store under OV_CONFIG_KEKS and are
- * write-only through /internal/config/domains.registrars/secrets/:key; summaries, history and logs
- * carry markers. Network's admin proxy reaches this namespace with `domains.config.manage`, acting
- * for the owner (X-OV-Subject); a secret change needs X-OV-Fresh: 1. The test route makes one cheap
- * authenticated read per registrar and answers ok or failed in one line, never echoing a key.
+ * The registrars Domains works with are Cloudflare, Porkbun, Namecheap, Gandi, Dynadot and Spaceship
+ * (server/registrars.js). A person's own connection token is still read from their Network vault for that person's
+ * zones; these owner keys are the service-wide fallback, read at the moment a registrar call is made. The admin
+ * panel's value wins over the environment (CLOUDFLARE_API_TOKEN, PORKBUN_API_KEY, …). Secrets are sealed by the
+ * shared store under OV_CONFIG_KEKS and are write-only through /internal/config/domains.registrars/secrets/:key;
+ * summaries, history and logs carry markers. Network's admin proxy reaches these namespaces with
+ * `domains.config.manage`, acting for the owner (X-OV-Subject); a secret change needs X-OV-Fresh: 1.
+ *
+ * The test route makes one cheap authenticated read per registrar and answers ok or failed in one line, never
+ * echoing a key: it lists the domains the account holds (server/registrar-clients.js). The DNSSEC test reads the
+ * domain's public DNSKEY and answers with the DS record to copy at the registrar (server/dnssec.js).
  */
 const { createConfigStore, adminRoutes } = require('openvibe-shared/config');
+const { REGISTRARS, requiredFor, registrarOfKey, SECRET_KEYS } = require('./registrars');
+const { LISTS } = require('./registrar-clients');
+const { dnskeysOf, dsRecord } = require('./dnssec');
 
 const SERVICE = 'domains';
 const NAMESPACE = 'domains.registrars';
+const DNSSEC_NAMESPACE = 'domains.dnssec';
 const BASE_PATH = '/internal/config';
 const GROUP = 'Domains';
 
+/**
+ * The schema of the registrar namespace, built from the registry (server/registrars.js), so a registrar is
+ * described in one place only. Every field of one registrar shares one x-required-for, so the owner's Setup tab
+ * shows the registrar once with its fields under it.
+ */
 const SCHEMA = Object.freeze({
     $schema: 'https://json-schema.org/draft/2020-12/schema',
     title: 'Domain registrars',
     description: 'The registrar accounts Domains reads prices and changes DNS with. A registrar with no key is skipped; people can still connect their own account.',
     type: 'object',
     additionalProperties: false,
+    properties: Object.fromEntries(REGISTRARS.flatMap((registrar) => registrar.keys.map((key) => [key.name, {
+        type: 'string',
+        title: key.title,
+        description: key.words,
+        'x-group': GROUP,
+        'x-owner-input': {
+            group: 'domains',
+            unlocks: registrar.unlocks,
+            get_it_at: registrar.get_it_at,
+            get_it_how: registrar.get_it_how,
+            test: true,
+        },
+        'x-required-for': requiredFor(registrar),
+    }]))),
+});
+
+/**
+ * The DNSSEC step (plan §AB.19: "DNSSEC as a guided sub-step with the records shown to copy"). The owner names the
+ * domain; the test reads its public DNSKEY and answers with the DS record to paste at the registrar. Nothing is
+ * stored and nothing is signed from here: the registrar is where a DS record is given.
+ */
+const DNSSEC_SCHEMA = Object.freeze({
+    $schema: 'https://json-schema.org/draft/2020-12/schema',
+    title: 'DNSSEC',
+    description: 'Signing your domains so nobody can answer for them with a false address. Name a domain here and its test shows the DS record to copy at the registrar.',
+    type: 'object',
+    additionalProperties: false,
     properties: {
-        cloudflare_api_token: {
-            type: 'string', title: 'Cloudflare API token', 'x-group': GROUP,
-            description: 'A Cloudflare API token that may list and edit the zones Domains manages. It lets the service read zones for people who connected Cloudflare; without it only a person\'s own connection works.',
+        dnssec_domain: {
+            type: 'string',
+            title: 'Domain to sign',
+            description: 'The domain you want signed, as plain text with no address in front (for example openvibe.network). Its test reads the domain\'s public DNS key and answers with the DS record to copy at the registrar.',
+            'x-group': GROUP,
+            'x-example': 'openvibe.network',
             'x-owner-input': {
                 group: 'domains',
-                unlocks: 'Cloudflare zones and DNS records can be read and changed with the service-wide account.',
-                get_it_at: 'https://dash.cloudflare.com/profile/api-tokens',
-                get_it_how: 'Create a token with Zone:Read and DNS:Edit, then paste it here.',
+                unlocks: 'Turns on DNSSEC for your domain: the DS record the test shows is what your registrar has to be given.',
+                get_it_at: 'https://developers.cloudflare.com/dns/dnssec/',
+                get_it_how: 'Turn on DNSSEC for the domain at the host that holds its DNS (Cloudflare: DNS, then Settings), then copy the DS record the test answers into your registrar.',
                 test: true,
             },
-            'x-required-for': 'Cloudflare domains',
-        },
-        porkbun_api_key: {
-            type: 'string', title: 'Porkbun API key', 'x-group': GROUP,
-            description: 'The Porkbun API key from your account\'s API page. Together with its secret it lets Domains read and change Porkbun DNS; the key alone does nothing.',
-            'x-owner-input': {
-                group: 'domains',
-                unlocks: 'Porkbun domains and DNS records can be read and changed with the service-wide account.',
-                get_it_at: 'https://porkbun.com/account/api',
-                get_it_how: 'Enable the API, create a key pair, and paste the API key and its secret key here.',
-                test: true,
-            },
-            'x-required-for': 'Porkbun domains',
-        },
-        porkbun_secret_api_key: {
-            type: 'string', title: 'Porkbun secret API key', 'x-group': GROUP,
-            description: 'The secret half of the Porkbun API key pair. It is locked when saved and never shown again; make a new pair at Porkbun if it is lost.',
-            'x-owner-input': {
-                group: 'domains',
-                unlocks: 'Porkbun accepts Domains\' requests: the secret signs every call.',
-                get_it_at: 'https://porkbun.com/account/api',
-                get_it_how: 'It is shown next to the API key when the pair is made. Copy it then; Porkbun cannot show it again.',
-                test: true,
-            },
-            'x-required-for': 'Porkbun domains',
+            'x-required-for': 'DNSSEC signing',
         },
     },
 });
 
-const SECRETS = new Set(['cloudflare_api_token', 'porkbun_api_key', 'porkbun_secret_api_key']);
+const SECRETS = new Set(SECRET_KEYS);
 const ACTIVE = { settings: null };
 
 function createSettings({ db, env = process.env, log = console, fetchImpl = globalThis.fetch, probes = null } = {}) {
     let store = null;
-    const ready = createConfigStore({
-        db, service: SERVICE, namespace: NAMESPACE, schema: SCHEMA,
-        classify: (key) => (SECRETS.has(key) ? 'secret' : 'internal'),
-        env, log,
-    }).then((s) => { store = s; return s; });
+    let dnssecStore = null;
+    const ready = Promise.all([
+        createConfigStore({
+            db, service: SERVICE, namespace: NAMESPACE, schema: SCHEMA,
+            classify: (key) => (SECRETS.has(key) ? 'secret' : 'internal'),
+            env, log,
+        }),
+        createConfigStore({
+            db, service: SERVICE, namespace: DNSSEC_NAMESPACE, schema: DNSSEC_SCHEMA,
+            classify: () => 'internal',
+            env, log,
+        }),
+    ]).then(([made, dnssec]) => { store = made; dnssecStore = dnssec; return made; });
 
     const values = () => (store ? store.get() : {});
 
@@ -97,53 +123,77 @@ function createSettings({ db, env = process.env, log = console, fetchImpl = glob
         };
     }
 
-    async function probeCloudflare(apiToken) {
-        const r = await fetchImpl('https://api.cloudflare.com/client/v4/user/tokens/verify', { headers: { accept: 'application/json', authorization: `Bearer ${apiToken}` } });
-        let body = {};
-        try { body = await r.json(); } catch { /* not JSON */ }
-        if (!r.ok || !body.success) throw new Error((body.errors && body.errors[0] && body.errors[0].message) || `HTTP ${r.status}`);
-    }
-
-    async function probePorkbun(apiKey, secretApiKey) {
-        const r = await fetchImpl('https://api.porkbun.com/api/json/v3/ping', {
-            method: 'POST', headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ apikey: apiKey, secretapikey: secretApiKey }),
-        });
-        let body = {};
-        try { body = await r.json(); } catch { /* not JSON */ }
-        if (!r.ok || body.status !== 'SUCCESS') throw new Error(body && body.message ? body.message : `HTTP ${r.status}`);
-    }
-
-    async function test(key) {
-        if (!['cloudflare_api_token', 'porkbun_api_key', 'porkbun_secret_api_key'].includes(key)) return { ok: false, detail: 'That setting has no test.' };
-        const keys = registrarKeys();
-        if (key === 'cloudflare_api_token') {
-            if (!keys.cloudflare.apiToken) return { ok: false, detail: 'Cloudflare is not configured: paste the API token first.' };
-            const probe = probes && probes.cloudflare ? probes.cloudflare : ({ apiToken }) => probeCloudflare(apiToken);
-            try {
-                await probe({ apiToken: keys.cloudflare.apiToken });
-                return { ok: true, detail: 'ok — Cloudflare verified the token.' };
-            } catch (err) {
-                const words = String((err && err.message) || 'the request failed').split(/\s+/).join(' ').slice(0, 160);
-                return { ok: false, detail: `failed — Cloudflare said: ${words.split(keys.cloudflare.apiToken).join('[redacted]')}` };
+    /** The keys of every registrar, read from the vault (the environment is the fallback). */
+    function allRegistrarKeys() {
+        const out = {};
+        for (const registrar of REGISTRARS) {
+            const creds = {};
+            for (const key of registrar.keys) {
+                creds[key.local] = key.secret ? valueOf(key.name, key.env, '') : valueOf(key.name, key.env, '');
             }
+            out[registrar.id] = creds;
         }
-        const { apiKey, secretApiKey } = keys.porkbun;
-        if (!apiKey || !secretApiKey) return { ok: false, detail: 'Porkbun is not configured: both the API key and its secret key are needed.' };
-        const probe = probes && probes.porkbun ? probes.porkbun : ({ apiKey: a, secretApiKey: s }) => probePorkbun(a, s);
+        return out;
+    }
+
+    /** The names of the secret values of a registrar, so a refusal never carries one. */
+    function secretsOf(registrar) {
+        return registrar.keys.filter((k) => k.secret).map((k) => valueOf(k.name, k.env, '')).filter(Boolean);
+    }
+
+    /**
+     * The test of a registrar's field: one cheap authenticated read that lists the domains the account holds.
+     * It never writes and never spends. A refusal is one line with the registrar's own words and no key in it.
+     */
+    async function testRegistrar(registrar) {
+        const creds = allRegistrarKeys()[registrar.id];
+        const missing = registrar.keys.filter((k) => !creds[k.local]);
+        if (missing.length) {
+            const what = missing.map((k) => k.title).join(' and ');
+            return { ok: false, detail: `${registrar.name} is not set up yet: paste the ${what} first.` };
+        }
+        const probe = probes && probes[registrar.id] ? probes[registrar.id] : LISTS[registrar.id];
         try {
-            await probe({ apiKey, secretApiKey });
-            return { ok: true, detail: 'ok — Porkbun answered the ping with this key pair.' };
+            const names = await probe(creds, { fetchImpl });
+            const list = Array.isArray(names) ? names : [];
+            const howMany = list.length === 1 ? 'one domain' : `${list.length} domains`;
+            return { ok: true, detail: `ok — ${registrar.name} answered: the account holds ${howMany}.` };
         } catch (err) {
             let words = String((err && err.message) || 'the request failed');
-            for (const secret of [apiKey, secretApiKey]) words = words.split(secret).join('[redacted]');
-            return { ok: false, detail: `failed — Porkbun said: ${words.split(/\s+/).join(' ').slice(0, 160)}` };
+            for (const secret of secretsOf(registrar)) words = words.split(secret).join('[redacted]');
+            words = words.split(/\s+/).join(' ').slice(0, 160);
+            return { ok: false, detail: `failed — ${registrar.name} said: ${words}` };
         }
+    }
+
+    /** The test of the DNSSEC field: the DS records of the named domain, to copy at the registrar. */
+    async function testDnssec() {
+        const domain = String((dnssecStore ? dnssecStore.get() : {}).dnssec_domain || '').trim().replace(/\.$/, '');
+        if (!domain) return { ok: false, detail: 'Name the domain to sign first: put it in the field and save.' };
+        const read = probes && probes.dnssec ? probes.dnssec : dnskeysOf;
+        try {
+            const keys = await read(domain, { fetchImpl });
+            const records = keys.map((key) => dsRecord(domain, key));
+            const first = records[0].content;
+            const more = records.length > 1 ? ` (${records.length} keys are published; give the registrar the one it asks for.)` : '';
+            return { ok: true, detail: `ok — copy this at the registrar: ${first}${more}` };
+        } catch (err) {
+            const words = String((err && err.message) || 'the lookup failed').split(/\s+/).join(' ').slice(0, 200);
+            return { ok: false, detail: `failed — ${words}` };
+        }
+    }
+
+    /** The test of any field of these namespaces. */
+    async function test(namespace, key) {
+        if (namespace === DNSSEC_NAMESPACE) return key === 'dnssec_domain' ? await testDnssec() : { ok: false, detail: 'That setting has no test.' };
+        const registrar = registrarOfKey(key);
+        if (!registrar) return { ok: false, detail: 'That setting has no test.' };
+        return await testRegistrar(registrar);
     }
 
     function mount(app, { guard, log: appLog = log } = {}) {
         if (!store) throw new Error('createSettings: await ready before mount()');
-        const routes = adminRoutes([store], {
+        const routes = adminRoutes([store, dnssecStore], {
             basePath: BASE_PATH,
             requireAdmin: guard,
             actor: (req) => {
@@ -157,15 +207,16 @@ function createSettings({ db, env = process.env, log = console, fetchImpl = glob
         // adminRoutes a test route of its own, and the dispatcher answers it first (it wants an acting subject,
         // this one the service-token capability). 2026-11-07, the openvibe-shared v4.126.0 pin round.
         app.post(`${BASE_PATH}/:namespace/test/:key`, guard, async (req, res) => {
-            if (req.params.namespace !== NAMESPACE) return res.status(404).json({ error: 'no such configuration namespace' });
+            if (![NAMESPACE, DNSSEC_NAMESPACE].includes(req.params.namespace)) return res.status(404).json({ error: 'no such configuration namespace' });
             let key = String(req.params.key || '');
             try { key = decodeURIComponent(key); } catch { /* keep it as it is */ }
-            if (!SCHEMA.properties[key]) return res.status(404).json({ error: 'no such setting' });
+            const schema = req.params.namespace === DNSSEC_NAMESPACE ? DNSSEC_SCHEMA : SCHEMA;
+            if (!schema.properties[key]) return res.status(404).json({ error: 'no such setting' });
             try {
-                const out = await test(key);
+                const out = await test(req.params.namespace, key);
                 return res.status(200).json({ ok: Boolean(out.ok), detail: String(out.detail).replace(/\s+/g, ' ').slice(0, 200) });
             } catch (err) {
-                appLog.warn(`[config] ${NAMESPACE}: the test for ${key} failed: ${String((err && err.message) || err).slice(0, 160)}`);
+                appLog.warn(`[config] ${req.params.namespace}: the test for ${key} failed: ${String((err && err.message) || err).slice(0, 160)}`);
                 return res.status(200).json({ ok: false, detail: 'failed — the test did not finish. The service log has the reason.' });
             }
         });
@@ -173,7 +224,11 @@ function createSettings({ db, env = process.env, log = console, fetchImpl = glob
         return routes;
     }
 
-    return { namespace: NAMESPACE, schema: SCHEMA, ready, value: valueOf, get: values, registrarKeys, test, mount };
+    return {
+        namespace: NAMESPACE, dnssecNamespace: DNSSEC_NAMESPACE, schema: SCHEMA, dnssecSchema: DNSSEC_SCHEMA,
+        dnssecStore: () => dnssecStore,
+        ready, value: valueOf, get: values, registrarKeys, allRegistrarKeys, test, testRegistrar, testDnssec, mount,
+    };
 }
 
 function activate(settings) { ACTIVE.settings = settings; return settings; }
@@ -185,4 +240,7 @@ function registrarKeys() {
     };
 }
 
-module.exports = { SERVICE, NAMESPACE, SCHEMA, SECRETS, createSettings, activate, registrarKeys };
+module.exports = {
+    SERVICE, NAMESPACE, DNSSEC_NAMESPACE, SCHEMA, DNSSEC_SCHEMA, SECRETS,
+    createSettings, activate, registrarKeys,
+};
