@@ -83,6 +83,7 @@ function layout({ title, description, canonical, robots = 'index, follow', body,
         // Sign-in with OpenVibe.Network (server/auth/sso.js): the control panel is a person's own.
         silentLogin: '/auth/login?silent=1&next={url}',
         sessionUrl: '/auth/me',
+        tokenUrl: '/auth/navbar-token',
         loginUrl: '/auth/login?next={path}',
         logoutUrl: '/auth/logout?next={path}',
         search: { page: '/search', label: NAME },
